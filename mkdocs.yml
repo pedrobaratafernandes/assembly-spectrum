@@ -1,5 +1,6 @@
 site_name: Escrever Jogos para o ZX Spectrum
 site_description: Tradução e adaptação do livro "How to Write ZX Spectrum Games" de Jonathan Cauldwell
+site_url: https://pedrobaratafernandes.github.io/assembly-spectrum/
 theme:
   name: readthedocs
 
