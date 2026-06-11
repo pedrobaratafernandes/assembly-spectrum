@@ -3,6 +3,12 @@ site_description: Tradução e adaptação do livro "How to Write ZX Spectrum Ga
 theme:
   name: readthedocs
 
+extra_javascript:
+  - js/chatbot.js
+
+extra_css:
+  - css/chatbot.css
+
 nav:
   - Introdução: index.md
   - 'Capítulo 1: Setup, Texto e Gráficos': 1.md
