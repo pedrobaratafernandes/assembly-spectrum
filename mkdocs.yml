@@ -12,22 +12,35 @@ extra_css:
 
 nav:
   - Introdução: index.md
-  - 'Capítulo 1: Setup, Texto e Gráficos': 1.md
-  - 'Capítulo 2: Teclado e Joystick': 2.md
-  - 'Capítulo 3: Altifalante e Beep': 3.md
-  - 'Capítulo 4: Números Aleatórios': 4.md
-  - 'Capítulo 5: Colisões de Fundo': 5.md
-  - 'Capítulo 6: Tabelas': 6.md
-  - 'Capítulo 7: Colisões de Inimigos': 7.md
-  - 'Capítulo 8: Sprites': 8.md
-  - 'Capítulo 9: Gráficos de Fundo': 9.md
-  - 'Capítulo 10: Pontuações': 10.md
-  - 'Capítulo 11: Movimento de Inimigos': 11.md
-  - 'Capítulo 12: Temporização': 12.md
-  - 'Capítulo 13: Duplo Buffer': 13.md
-  - 'Capítulo 14: Movimento Sofisticado': 14.md
-  - 'Capítulo 15: Matemática': 15.md
-  - 'Capítulo 16: Música e Efeitos AY': 16.md
-  - 'Capítulo 17: Interrupções': 17.md
-  - 'Capítulo 18: Carregamento Automático': 18.md
-  - 'Capítulo 19 & Apêndice: Design de Jogos': 19.md
+  - 'Parte 1: Aprendizagem de Assembly Z80':
+      - '1. Modos de Endereçamento': z80_1_modos_enderecamento.md
+      - '2. Data in Motion': z80_2_data_in_motion.md
+      - '3. Condicionalidade': z80_3_condicionalidade.md
+      - '4. Aritmética': z80_4_aritmetica.md
+      - '5. The Stack': z80_5_the_stack.md
+      - '6. Bits e Lógica': z80_6_bits_logica.md
+      - '7. In e Out': z80_7_in_e_out.md
+      - '8. O Resto': z80_8_o_resto.md
+      - '9. A ROM': z80_9_a_rom.md
+      - '10. Gráficos': z80_10_graficos.md
+      - '11. Interrupções': z80_11_interrupcoes.md
+  - 'Parte 2: Escrever Jogos para o ZX Spectrum (Tradução)':
+      - 'Capítulo 1: Setup, Texto e Gráficos': 1.md
+      - 'Capítulo 2: Teclado e Joystick': 2.md
+      - 'Capítulo 3: Altifalante e Beep': 3.md
+      - 'Capítulo 4: Números Aleatórios': 4.md
+      - 'Capítulo 5: Colisões de Fundo': 5.md
+      - 'Capítulo 6: Tabelas': 6.md
+      - 'Capítulo 7: Colisões de Inimigos': 7.md
+      - 'Capítulo 8: Sprites': 8.md
+      - 'Capítulo 9: Gráficos de Fundo': 9.md
+      - 'Capítulo 10: Pontuações': 10.md
+      - 'Capítulo 11: Movimento de Inimigos': 11.md
+      - 'Capítulo 12: Temporização': 12.md
+      - 'Capítulo 13: Duplo Buffer': 13.md
+      - 'Capítulo 14: Movimento Sofisticado': 14.md
+      - 'Capítulo 15: Matemática': 15.md
+      - 'Capítulo 16: Música e Efeitos AY': 16.md
+      - 'Capítulo 17: Interrupções': 17.md
+      - 'Capítulo 18: Carregamento Automático': 18.md
+      - 'Capítulo 19 & Apêndice: Design de Jogos': 19.md
