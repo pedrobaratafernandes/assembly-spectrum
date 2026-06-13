@@ -1,19 +1,9 @@
 # Bibliografia e Fontes
 
-Este guia foi elaborado a partir de uma compilação, tradução e adaptação de excelentes materiais criados pela comunidade do ZX Spectrum. O nosso agradecimento profundo aos autores originais por partilharem o seu conhecimento.
+As fundações deste volume, a mestria da máquina e os arcanos do processador Z80, alicerçam-se profundamente numa herança intemporal de documentação técnica. O conhecimento decalcado nestas páginas não surge do vazio; é o corolário de décadas de exploração, desmontagem e partilha pelas lides incansáveis da comunidade dedicada à retro-computação e ao ZX Spectrum.
 
-## Parte 1: Aprendizagem de Assembly Z80
+No varrimento da arquitetura base e nos preceitos do Assembly, a inspiração bebeu diretamente dos sagrados manuais de nascença da própria Zilog – nomeadamente o Z80 CPU User Manual –, cuja crueza técnica moldou o entendimento fundamental da letal transação de bits. As fintas do hardware, da misteriosa ULA às particularidades da ROM de 48K, espelham as revelações dos técnicos da Sinclair Research e dos incontáveis e exímios exploradores que desbravaram a neblina destas entranhas nas décadas subsequentes, partilhando abertamente o seu suor através de tutoriais, fanzines e publicações especializadas.
 
-A primeira secção deste guia, focada na arquitetura do processador Z80, modos de endereçamento e comandos básicos, foi estruturada com base na série de tutoriais de Assembly Z80 criados por **Matt Heffernan**.
-* Pode encontrar o excelente trabalho original do autor no seu canal de YouTube e website oficial.
+Para as lides de desenvolvimento prático e construção do motor de jogo — desde o embate dos sprites à dança frenética das colisões e rotinas musicais —, este compêndio deve o seu alinhamento aos vastos acervos técnicos da comunidade. O método de estruturar um jogo no Spectrum é uma arte coletiva; as técnicas aqui descritas são o eco apurado de tutoriais exaustivos, artigos técnicos e guias de referência prática que ensinaram gerações a dominar o hardware do ZX Spectrum, e que hoje sobrevivem no grande arquivo da era digital.
 
-## Parte 2: Escrever Jogos para o ZX Spectrum
-
-A segunda secção, focada no desenvolvimento prático de videojogos (sprites, colisões, temporização e som), é uma tradução direta e adaptação do aclamado livro **"How to Write ZX Spectrum Games"**, da autoria de **Jonathan Cauldwell**.
-* Este livro é uma referência incontornável na comunidade retro e ensinou uma geração inteira a dominar o hardware do ZX Spectrum.
-
-## Ferramentas e Adaptação
-
-Todos os blocos de código presentes nas obras originais foram modernizados e readaptados neste guia para garantir compatibilidade a 100% com o compilador cruzado atual **sjasmplus**.
-
-Recomendamos vivamente que procure e apoie os autores e os materiais originais aqui referenciados.
+Todo o código transacionado nesta obra foi exaustivamente adaptado, purgado do seu pó e atualizado para a bitola do moderno compilador cruzado *sjasmplus*, providenciando assim uma ponte fiável entre as velhas magias do Z80 e o conforto das ferramentas atuais. Um profundo agradecimento a todos os pioneiros sem rosto que cimentaram a estrada por onde hoje continuamos a criar e a sonhar no ecrã de 256x192 píxeis.
