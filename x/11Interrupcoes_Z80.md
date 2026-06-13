@@ -1,6 +1,6 @@
 # O Coração do Jogo: O Domínio do Tempo (Interrupções Z80)
 
-Este documento traduz o décimo segundo episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, desenhado pelo Matt Heffernan. Descobrimos finalmente o segredo dos jogos de arcada puros: como sincronizar os nossos programas com a cadência exata do televisor para acabar com os ecrãs a piscar.
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Descobrimos finalmente o segredo dos jogos de arcada puros: como sincronizar os nossos programas com a cadência exata do televisor para acabar com os ecrãs a piscar.
 
 ## 1. Os Alarmes do Spectrum (`NMI` vs `INT`)
 

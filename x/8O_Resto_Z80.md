@@ -1,6 +1,6 @@
 # As Sobras Mágicas do Z80: NOPs, BCD e Pesquisas
 
-Este documento resume o nono episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. Com este episódio fechamos as instruções de código máquina do Z80, focando-nos nos comandos órfãos que não têm categoria mas são vitais!
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Com este episódio fechamos as instruções de código máquina do Z80, focando-nos nos comandos órfãos que não têm categoria mas são vitais!
 
 ## 1. A Arte de Fazer Nada (`NOP` e `HALT`)
 

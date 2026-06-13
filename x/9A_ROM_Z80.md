@@ -1,6 +1,6 @@
 # O Sistema Operativo: A ROM (ZX Spectrum)
 
-Este documento resume o décimo episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. Com este capítulo abandonamos o laboratório puro do processador e mergulhamos finalmente na máquina de jogos que todos conhecem: a arquitetura do ZX Spectrum e os seus 16KB de memórias proibidas!
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Com este capítulo abandonamos o laboratório puro do processador e mergulhamos finalmente na máquina de jogos que todos conhecem: a arquitetura do ZX Spectrum e os seus 16KB de memórias proibidas!
 
 ## 1. O Mapa da Memória (Os 16K de ROM)
 

@@ -1,6 +1,6 @@
 # Magia Negra dos Bits: Lógica e Rotações (ZX Spectrum)
 
-Este documento resume o sétimo episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. O foco deste episódio desce ao nível mais baixo possível: a manipulação de bits individuais dentro dos bytes!
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste episódio desce ao nível mais baixo possível: a manipulação de bits individuais dentro dos bytes!
 
 ## 1. Lógica Booleana (`AND`, `OR`, `XOR`, `CPL`)
 

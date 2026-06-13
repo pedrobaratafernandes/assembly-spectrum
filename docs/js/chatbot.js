@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const systemContent = `És um assistente especialista em programação do ZX Spectrum, processador Z80, linguagem assembly e compilador sjasmplus. Responde sempre de forma clara, directa, amigável e em português de Portugal (PT-PT).
 
-Aqui está o contexto da página do livro que o utilizador está a ler atualmente (podes usar esta informação para responder a dúvidas de código ou explicações contidas na página):
+Aqui está o contexto da página que o utilizador está a ler atualmente (podes usar esta informação para responder a dúvidas de código ou explicações contidas na página):
 ---
 ${pageContext}
 ---`;

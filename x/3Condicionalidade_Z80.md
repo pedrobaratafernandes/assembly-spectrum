@@ -1,6 +1,6 @@
 # Condicionalidade no Z80: Como o Processador Toma Decisões (ZX Spectrum)
 
-Este documento resume o quarto episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, pelo Matt Heffernan. O foco deste episódio é desvendar como a arquitetura do processador lida com testes lógicos e condições matemáticas para implementar fluxos de código (como os famosos `If/Else` e `While loops` das linguagens modernas).
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco é desvendar como a arquitetura do processador lida com testes lógicos e condições matemáticas para implementar fluxos de código (como os famosos `If/Else` e `While loops` das linguagens modernas).
 
 ## 1. O Painel de Instrumentos: O Registo `F` (Flags)
 Toda a tomada de decisão no Z80 baseia-se num único registo de 8 bits chamado `F` (Flags / Estado). Ele atua como um painel de avisos do processador. Certas operações matemáticas (ou comandos específicos) acendem ou apagam as luzes (bits) deste registo de forma automática.
@@ -105,8 +105,8 @@ Este fluxo lógico elegante e contínuo é o que torna o Assembly do Z80 incrive
 
 ---
 
-## 7. Errata do Episódio 4: Controlo Manual da Flag de Carry
-No processador Z80, há momentos em que precisamos de ligar ou desligar explicitamente a luz de *Carry* (`C`) no painel de controlo. O vídeo original continha algumas imprecisões que foram corrigidas na **Errata oficial**:
+## 7. Controlo Manual da Flag de Carry
+No processador Z80, há momentos em que precisamos de ligar ou desligar explicitamente a luz de *Carry* (`C`) no painel de controlo.
 
 - **Ligar o Carry (`SCF`):** Significa *Set Carry Flag*. Apenas acende a luz do Carry (`C=1`) independentemente de tudo o resto. (Nota técnica: também desliga as luzes H e N do painel).
 - **O Mito do `CCF`:** Muitas pessoas pensam que significa *Clear Carry Flag* (Desligar Carry), mas isso é **falso**! Na verdade, significa **Complement Carry Flag** (Inverter o Carry). Se a luz estiver acesa, ele desliga-a. Se estiver desligada, ele acende-a. Funciona como um interruptor de parede!

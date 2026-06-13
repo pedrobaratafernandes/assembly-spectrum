@@ -1,6 +1,6 @@
 # A Pilha de Memória (The Stack) no Z80 (ZX Spectrum)
 
-Este documento resume o sexto episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. O foco deste episódio é a *Stack* (Pilha), uma zona especial da memória gerida automaticamente pelo processador e fundamental para o funcionamento de qualquer programa.
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste episódio é a *Stack* (Pilha), uma zona especial da memória gerida automaticamente pelo processador e fundamental para o funcionamento de qualquer programa.
 
 ## 1. O que é a Stack?
 

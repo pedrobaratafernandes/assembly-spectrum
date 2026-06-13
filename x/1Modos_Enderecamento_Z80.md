@@ -1,6 +1,6 @@
 # Modos de Endereçamento do CPU Z80 (ZX Spectrum)
 
-Este documento resume o segundo episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. O foco deste episódio é compreender como o processador Z80 interage com a memória e com os registos através dos vários **Modos de Endereçamento** (Addressing Modes).
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco é compreender como o processador Z80 interage com a memória e com os registos através dos vários **Modos de Endereçamento** (Addressing Modes).
 
 ## Introdução
 O sistema Z80 possui um espaço de memória de 16 bits, o que lhe permite endereçar até 64 KB de memória. No ZX Spectrum 48K, não é necessário fazer *banking* (paginação de memória):
@@ -98,12 +98,12 @@ Combina um registo indexador (`IX` ou `IY`) com um *offset* (uma diferença fixa
 
 ### 10. Endereçamento de Bits (Bit Addressing)
 Permite ler, testar, alterar ou apagar um único bit isolado (de 0 a 7) de um registo ou valor de memória. Instruções base: `BIT`, `SET`, `RES`.
-- **Para que serve / Diferenças:** Manipular bytes individualmente ao nível dos bits. É indispensável para configurar interfaces de hardware em específico (ex: ativar apenas o relé correspondente no porto de interface), processar lógicas binárias, mascarar sinais, ou capitalizar letras como visto neste vídeo.
+- **Para que serve / Diferenças:** Manipular bytes individualmente ao nível dos bits. É indispensável para configurar interfaces de hardware em específico (ex: ativar apenas o relé correspondente no porto de interface), processar lógicas binárias, mascarar sinais, ou capitalizar letras como visto neste exemplo.
 - **Exemplo Prático:**
   ```assembly
     res 5, (ix)       ; Apaga (põe a 0) apenas o 5º bit desse byte indexado
   ```
-  - *Explicação para Iniciantes:* O comando `RES` significa "Reset", que no mundo do binário significa "Forçar a transformar-se num Zero". O número 5 é a posição daquela minúscula parcela de memória (um byte é composto por 8 bits, numerados de 0 a 7). Assim, o comando diz: "Vai à morada apontada por IX e independentemente do número de lá estar, força apenas o seu 5º bit a desligar-se (Zero)". Como explicado no vídeo, se fizeres isto à letra minúscula "h", ela transforma-se magicamente na letra maiúscula "H".
+  - *Explicação para Iniciantes:* O comando `RES` significa "Reset", que no mundo do binário significa "Forçar a transformar-se num Zero". O número 5 é a posição daquela minúscula parcela de memória (um byte é composto por 8 bits, numerados de 0 a 7). Assim, o comando diz: "Vai à morada apontada por IX e independentemente do número de lá estar, força apenas o seu 5º bit a desligar-se (Zero)". Como explicado anteriormente, se fizeres isto à letra minúscula "h", ela transforma-se magicamente na letra maiúscula "H".
 
 ---
 
@@ -131,7 +131,7 @@ Modos para lidar com o *hardware*. No Spectrum, usa-se o `IM 1` para delegar as 
 
 ## Demonstração Prática: "Hello World" Detalhado
 
-O programa "Hello World" construído no vídeo tem o objetivo de demonstrar a aplicação prática e intencional de quase todos os modos de endereçamento abordados. O código completo baseia-se na sintaxe do assembler **sjasmplus**.
+O programa "Hello World" construído neste exemplo tem o objetivo de demonstrar a aplicação prática e intencional de quase todos os modos de endereçamento abordados. O código completo baseia-se na sintaxe do assembler **sjasmplus**.
 
 ### Código Completo
 
@@ -199,7 +199,7 @@ loop:
 
 ### Explicação Passo-a-Passo
 
-O vídeo detalha minuciosamente como cada bloco opera, cruzando a teoria de endereçamento com a forma como as instruções são guardadas na memória (visto através do ficheiro `.lst` gerado durante a compilação).
+O texto detalha minuciosamente como cada bloco opera, cruzando a teoria de endereçamento com a forma como as instruções são guardadas na memória (visto através do ficheiro `.lst` gerado durante a compilação).
 
 #### 1. Cabeçalho e Definição de Dados
 - **`jp start`**: Usa **Endereçamento Imediato Extendido**. O instrutor refere que como os dados a saltar têm menos de 127 bytes, poderia usar-se um simples `JR start` (Endereçamento Relativo) para poupar um byte, mas prefere usar `JP` para ser mais extensível caso se adicione mais texto à variável `string` no futuro.
@@ -226,7 +226,7 @@ O vídeo detalha minuciosamente como cada bloco opera, cruzando a teoria de ende
 #### 6. Loop Desdobrado (Unrolled Loop)
 - Para ilustrar a capacidade total do modo de índice `IX`, em vez de criar um loop e aumentar gradualmente o registo, o código recorre a uma abordagem "desdobrada": `ld a, (ix+0)`, depois `ld a, (ix+1)`, etc. Isto mostra diretamente como a diferença/offset do indexador de endereçamento atua dentro dos limites de 8 bits (-128 a +127).
 
-#### Conclusão do Vídeo e Listagem
+#### Conclusão e Listagem
 Após executar todas estas variações complexas para imprimir a frase, o código salta de linha novamente (`ld a, enter / rst 0x10`) e termina com a instrução de Modo Implícito **`ret`**.
 
-Ao correr o `build.sh`, o vídeo compara a sintaxe vista no ecrã com o `.lst` exportado pelo **sjasmplus**, demonstrando que todo este programa tem apenas **64 bytes (0x40 bytes)**. O ficheiro ilustra detalhadamente para o utilizador como as diretivas e Modos de Endereçamento do Z80 se transformam em curtos opcodes em Hexadecimal a processar pelo Spectrum.
+Ao correr o `build.sh`, podemos comparar a sintaxe vista no ecrã com o `.lst` exportado pelo **sjasmplus**, demonstrando que todo este programa tem apenas **64 bytes (0x40 bytes)**. O ficheiro ilustra detalhadamente para o utilizador como as diretivas e Modos de Endereçamento do Z80 se transformam em curtos opcodes em Hexadecimal a processar pelo Spectrum.

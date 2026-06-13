@@ -1,6 +1,6 @@
 # Data in Motion: Mover Dados no Z80 (ZX Spectrum)
 
-Este documento resume o terceiro episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. O foco deste episódio é aprofundar as formas como os dados fluem pelo processador e pela memória RAM/ROM, explorando as limitações do comando `LD`, as otimizações fantásticas de troca de registos e os poderosos comandos de cópia de blocos inteiros de memória.
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste episódio é aprofundar as formas como os dados fluem pelo processador e pela memória RAM/ROM, explorando as limitações do comando `LD`, as otimizações fantásticas de troca de registos e os poderosos comandos de cópia de blocos inteiros de memória.
 
 ## 1. A Instrução Universal: `LD` (Load)
 

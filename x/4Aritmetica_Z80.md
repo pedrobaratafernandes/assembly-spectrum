@@ -1,6 +1,6 @@
 # Aritmética no Z80: Fazer Contas (ZX Spectrum)
 
-Este documento resume o quinto episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, da autoria do Matt Heffernan. O foco deste episódio é a matemática. O Z80 não possui comandos nativos para multiplicação ou divisão; ele apenas consegue fazer **Somas (Add)** e **Subtrações (Sub)**. Toda a magia acontece manipulando o *Registo de Estado (Flags)*.
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste episódio é a matemática. O Z80 não possui comandos nativos para multiplicação ou divisão; ele apenas consegue fazer **Somas (Add)** e **Subtrações (Sub)**. Toda a magia acontece manipulando o *Registo de Estado (Flags)*.
 
 ## 1. A Soma Básica (`ADD`)
 

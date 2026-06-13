@@ -1,12 +1,11 @@
 # Como Escrever Jogos para o ZX Spectrum
-
-Bem-vindo à tradução e adaptação do livro **"How to Write ZX Spectrum Games"** de Jonathan Cauldwell.
+Bem-vindo ao guia de **Como Escrever Jogos para o ZX Spectrum**.
 
 Esta documentação foi estruturada para ajudar programadores de todos os níveis a compreender a arquitetura do ZX Spectrum, o processador Z80 e como criar jogos em código máquina utilizando ferramentas modernas.
 
 ## Ferramentas de Desenvolvimento
 
-Para acompanhar os exemplos práticos deste livro, utilizamos um fluxo de trabalho moderno baseado em duas ferramentas fundamentais:
+Para acompanhar os exemplos práticos deste guia, utilizamos um fluxo de trabalho moderno baseado em duas ferramentas fundamentais:
 * **sjasmplus**: Um compilador cruzado (*cross-assembler*) moderno e rápido para Z80 que corre diretamente no seu PC atual e gera os ficheiros binários (`.tap`, `.sna`) prontos para o ZX Spectrum.
 * **Fuse (Free Unix Spectrum Emulator)**: Um emulador robusto e preciso do ZX Spectrum para testar os ficheiros gerados de imediato.
 

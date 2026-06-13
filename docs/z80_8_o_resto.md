@@ -1,71 +1,55 @@
 # As Sobras Mágicas do Z80: NOPs, BCD e Pesquisas
 
-Este documento resume o nono episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. Com este episódio fechamos as instruções de código máquina do Z80, focando-nos nos comandos órfãos que não têm categoria mas são vitais!
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Com este capítulo fechamos o ciclo de apresentação das instruções nativas de código máquina do modesto processador, focando-nos no sortido de comandos singulares que não encontram lugar cativo em categorias estritas, mas cujo domínio é inequivocamente vital para a sobrevivência arquitetural do programador.
 
-## 1. A Arte de Fazer Nada (`NOP` e `HALT`)
+## A Arte Literária de Fazer Nada
 
-Às vezes, a melhor coisa que o computador tem a fazer é esperar e não estragar nada. 
+Paradoxalmente, ocorrem momentos vitais no fluxo de um programa em que a melhor ação possível que a máquina pode perpetrar é suspender as lides, reter a respiração e aguardar sem corromper absolutamente nenhum registo. 
 
-- **`NOP` (No Operation):** O famoso comando que não faz rigorosamente nada (nem sequer altera *flags*). Mas demora tempo! Gasta exatamente 4 ciclos (T-States), ou seja, um pouco mais que **1 microsegundo**. 
-  - *Para que serve?* Para criar atrasos calculados (quando queres que algo espere milissegundos antes de agir) ou para apagar buracos de memória.
-- **`HALT` (Parar e Esperar):** Uma pausa gigante. O processador "congela" o teu programa e fica à espera que o Hardware lá fora apite (uma Interrupção).
-  - *Para que serve?* No Spectrum, a placa de televisão grita a cada 1/50 segundos (Frame rate de 50hz) para dizer "vou desenhar o ecrã agora". Pões o `HALT` no teu jogo para ele correr a perfeitos 50 FPS sem soluços!
+O célebre `NOP` (No Operation) encarna este conceito. Esta mnemónica é o comando vazio por excelência, estipulando que o processador não faça rigorosamente nada e, de modo sobranceiro, saia sem beliscar as luzes do seu painel de instrumentos ou o conteúdo de qualquer gaveta da memória. Aparentemente inútil, o seu valor manifesta-se através do tempo: embora seja cego, o `NOP` exige tempo de atenção a transitar nas condutas e esgota perentoriamente exatos 4 ciclos da pastilha (T-States), ou seja, impõe um desgaste mecânico da ordem de um microsegundo numa frequência de clock comum. A mestria dos antigos artesãos recorre frequentemente a alinhamentos maciços de NOPs para erigir compassos de atrasos calculados, calibrando rotinas à precisão do grão de milissegundo antes do acionamento de hardware sensível nas franjas da máquina. A sua outra virtude incontornável atua na limpeza de terreno. Numa selva de binários e código que despoleta ramificações de bytes inuteis numa substituição quente ou alteração relâmpago de software injetado, os buracos perigosos de falhas do programa podem e devem ser aplainados preenchendo o vazio da memória com bytes formatados no inofensivo tapete `NOP`.
 
----
+Numa vertente diametralmente abissal de suspensão encontra-se a instrução de `HALT` (Parar e Esperar). Mais que um atraso temporal, ela propõe uma pausa mecânica colossal. Assim que a topa, o processador mergulha numa hibernação gélida e suspende por tempo indeterminado o carreiro natural do ponteiro de instruções do vosso jogo, prestando unicamente ouvidos estáticos perante o vazio. O seu renascimento exige em uníssono uma faísca do mundo palpável cá fora da pastilha, isto é, perante um grito físico sonoro proveniente de hardware coligado a invocar Interrupções. No palco glorioso do Spectrum de molde caseiro, o televisor grita interrupções rigorosas acicatadas na fasquia de uma a cada quinquagésimo de segundo (o famoso Frame rate PAL de 50 Hz). A injeção ponderada do comando `HALT` alicerça assim a mestria dos programadores da era que esgotaram a arte de ataviar os seus motores gráficos com garantidos 50 "Frames per Second" cravados na rocha imutável, despindo-os dos vergonhosos soluços e garantindo as harmonias na dança do pincel visível sem hesitações de sincronia na TV de serviço.
 
-## 2. A Magia Matemática do `DAA`
+## A Conversão Numérica Pelo DAA
 
-O Z80 não tem o famoso "Decimal Mode" do 6502. Ou seja, ele só sabe Matemática Hexadecimal. Se quiseres contar de 1 a 10 no ecrã e somares `09 + 01`, ele responde `0A`!
+A arquitetura originária da Zilog ostenta deficiências curiosas no que tange às operações base humanas, falhando com nota liminar ao ser destituída de fábrica do célebre "Decimal Mode", o formato de raciocínio natural de dezenas e centenas que agraciou colossos da época como o 6502 concorrente. Assim, este singelo processador só sabe processar matemática através da insensível grelha Hexadecimal de 16 bases. Numa operação natural quotidiana para transpor os pontos acumulados numa tabela de recordes de arcada de 1 a 10 e se for forçado a conjugar perante os seus terminais um vulgo `09 + 01`, a resposta seca que ressoa das entranhas devolve liminarmente os glifos impronunciáveis dum `0A`.
 
-- **`DAA` (Decimal Adjust Accumulator):** É a varinha mágica que converte a resposta para Base 10. Para que ela funcione, deves usar a instrução `DAA` **exatamente na linha abaixo** da tua adição ou subtração!
+Paliativo para a cegueira mecânica da era, materializou-se a mnemónica de correção mágica `DAA` (Decimal Adjust Accumulator). A referida engrenagem exótica traduz o que as nossas mentes anseiam, impondo conversões drásticas para forçar retroativamente a resposta fria à moldura acolhedora em Base 10 que nos define. Porém, ostenta diretivas rigorosas de proximidade: o processador carece e exige obrigatoriamente que a operação de auxílio via `DAA` submeta diretamente o cálculo matemático acoplada à própria ação original, ou seja, deverá perfilar invariavelmente estampada numa linha imediata decalcada após a soma ou desfalque recém-nascido.
 
-- **Exemplo Prático (Somar de Forma Humana):**
-  ```assembly
-    ld a, 0x09      ; 'A' tem o valor 9
-    add a, 0x01     ; Somamos 1. O Z80 guarda 0x0A no 'A'
-    daa             ; Magia Negra: Ele usa o Half-Carry secreto e transforma o 0x0A em 0x10!
-                    ; (0x10 em Hexadecimal quando impresso no ecrã como BCD lê-se '10' Decimal!)
-  ```
+```assembly
+    ld a, 0x09      ; Alojamento do nove nas raízes do nosso Acumulador
+    add a, 0x01     ; O incremento natural somado e devolvido à cega como '0x0A'
+    daa             ; O Manto Negro: resgatando a metade invisível secreta forçamo-la e o Acumulador coroa 0x10
+```
 
----
+Este resgate alquímico evoca as entranhas místicas subatómicas cruzando informações fantasmagóricas gravadas na enigmática luz de aviso `Half-Carry`, a luz apagada perante a transição secreta dos *nibbles* intradiários da qual nunca ouvimos sussurros nas rotinas profanas vulgares; com essa chave, o painel central transmuta a natureza crua em código Binary-Coded Decimal (BCD), convertendo a forma nativa do 0x10 que doravante resplandecerá à superfície de forma legível aos povos humanos pela impressão gloriosa das pontuações na tela matriz de forma inteligível do puro "10".
 
-## 3. O Motor de Pesquisa Interno (`CPIR` e `CPDR`)
+## Os Motores Internos de Pesquisa Pisteira
 
-Se quiseres procurar a letra "Z" num texto gigante de 4 KB na memória, tens de criar um Loop manual: testar byte, incrementar endereço, decrementar contador, saltar para o inicio. Demora uma eternidade.
-Ou podes simplesmente usar o Motor Pisteiro interno do Z80!
+Perscrutar o silêncio da noite numa planície imensa na incessante demanda do alvo oculto - seja a mera busca pelo caratere da letra "Z" que repousa perdido na escuridão num bloco textual encastrado duma floresta gigantesca contábil de 4000 caracteres de permeio num poema digital extenso -, evoca no seio das premissas vulgares a construção lenta e decrépita dum infame e deslustrado *Loop* manual. Um calvário excruciante balizado por testar e atestar incansavelmente cada byte sucessivo na via, decrementar o indexante de moradas longas de passo unitário e esticar o elástico perante saltos infindáveis repetitivos que afogam em marés demoradas o caudal do fluído natural que move e que pauta a beleza veloz. O esgotamento seria trágico se não repousasse embebido nas pedras do silício os Motores Internos de Busca Direta automatizados e nativos pela engenharia sublime.
 
-- **`CPIR` (Compare, Increment, Repeat):** Faz uma busca automática para a Frente.
-- **`CPDR` (Compare, Decrement, Repeat):** Faz uma busca automática para Trás.
+Tratados sob as siglas uníssonas de `CPIR` (Compare, Increment, Repeat) que desenfreadamente avança num esquadrinhamento voraz para diante ou os retroativos e cautelares sob a pauta do irmão retroativo de varrimento inverso para trás do `CPDR` (Compare, Decrement, Repeat).
 
-Os preparativos exigem sempre as 3 mesmas variáveis:
-- **`HL`** = A morada onde a busca começa.
-- **`BC`** = Quantos bytes no máximo vamos caminhar (Tamanho limite).
-- **`A`** = O "cheiro" do nosso alvo (O byte ou a letra que queremos encontrar).
+A ignição das turbinas obriga imperativamente às congregações estritas duma plêiade de triplas grandezas fundamentais: A base estruturada da matriz arranca a busca focada a partir da batuta exata ditada pela longa morada fixada previamente no indexante natural `HL`; a corda amarrada aos baluartes com extensão em contagem final do abismo dita pelas capacidades magnas do suporte dimensional da variável alocada no limite balizador e insubstituível dos estribos no `BC`; terminando na natureza pura da centelha volátil perfumada de isco ditada inexoravelmente pelo elemento primário vertido em `A` revelando destemido o rasto cobiçado que encabeçará a missão de buscas e atirará sem piedade os motores da perseguição ininterrupta da fera mecânica ao rubro infernal do avanço perante os pântanos de lamas.
 
-- *Explicação para Iniciantes (O Cão Pisteiro):* Imagina que o `CPIR` é um cão. Dás-lhe a morada da casa para entrar (`HL`). Pões-lhe a trela com os metros máximos que ele pode andar (`BC`) e dás-lhe a cheirar o alvo (`A`). O cão corre furiosamente sozinho a verificar tudo e só pára se o rasto acabar (`BC = 0`) ou se encontrar o alvo!
-  - **A Grande Rasteira:** O cão avança tão rápido que só pára 1 quadrado à frente do alvo! Portanto, se o alvo for encontrado, a morada `HL` será o `Alvo + 1`. Tens de fazer um `DEC HL` (dar um passo atrás) para apanhares a tua presa.
+O processador comporta-se indubitavelmente neste transe sob a égide inquestionável dum infalível Cão Pisteiro. Lançada a coleira à origem de rastreio ditada pelo `HL`, segurada com estoicismo e precisão inegociável na trela da fita métrica ditada limitadamente até que a dita restrição dos blocos máximos exatos colapsem esboroando extenuados perante o `BC` no estanque de limites, instiga furiosamente perante a prova olfativa irredutível cravada exata e rigorosa no byte central transigido no recluso regozijo instilado num alvo volátil transigido abrigado de origem recôndito em prol na moldura do Acumulador de alvo e escorropicha e atiça correndo autonomamente nas veias silenciosas.
 
-- **Exemplo Prático:**
-  ```assembly
-    ld hl, 0x8000   ; O cão começa no endereço 0x8000
-    ld bc, 1000     ; A trela tem 1000 bytes de tamanho
-    ld a, 0x00      ; Dá-lhe a cheirar o código NOP (Zero)
+```assembly
+    ld hl, 0x8000   ; O faro lançado na morada original oitenta e tal cravada ao pórti...
+    ld bc, 1000     ; Limitada fisicamente no jugo amarrada eximiamente ao teto extenuante 1000..
+    ld a, 0x00      ; Farejando e instilando implacavelmente cega atrás das raízes perdidas do Zero / NOP
     
-    cpir            ; SOLTEM OS CÃES! O processador congela e procura à velocidade da luz.
+    cpir            ; E desfeita a couraça o motor arranca na caçada invisível e infalível pelo interior a fora!
     
-    ; Quando a próxima linha de código correr, o cão já parou!
-    dec hl          ; Dá um passinho atrás para apanhar o NOP, porque o cão parou em HL+1.
-  ```
+    dec hl          ; Interceção brutal recuando os ponteiros exaustos em cima do embate do encalço letal!
+```
 
----
+Importa reter uma perigosa armadilha perante caçadas furiosas sob o leito estanque da via dos Z80 limitados. Arrastado veloz e inexoravelmente na procura imparável da morada cobiçada do rasto fatal o avanço frenético embutido revela sempre incontroláveis pântanos mecânicos no abrandamento físico inerte que resvala sempre inegociável o travão em falso passando indubitavelmente derrapando num embate exato perante mais de um quadrado extra num trambolhão excedente inquestionável na colisão com as presas vitais de alvo capturado. Pelo decurso transato, o apontador final inóspito abandonado no esgoto dos caminhos remete invariavelmente não à pedra basal da carcaça do alvo ditado mas colide com rigor e sem remendos espancado um passo infalível exato além fronteiras roçando o leito na vizinha extremidade da porta à ilharga em `HL+1`. A retoma aos destroços intatos exige invariavelmente um resgate compassivo retroativo em regresso unitário por imperiosa necessidade estrita imposta dum cirúrgico regresso à glória da estocada por rescaldo via reverso manual singelo recambiando num revés absoluto ao repouso sagrado original pela alçada dum elementar resgate cravado em `DEC HL`.
 
-## 4. O Sistema Nervoso do Spectrum (`IM`, `EI`, `DI`)
+## O Sistema Nervoso Automático
 
-Por último, temos as chaves do sistema de alarme de Hardware, as interrupções.
+Encerrando as franjas imperiosas deste rol recôndito a chave matricial dita inexpugnável nos confins abismais o trilho insidioso abissal focado nas balizas colossais assentes e acicatadas nos intercetores mecânicos encabeçados nas famosas Interrupções de via aberta dos limites e sistemas nervosos automáticos a atarraxar incólumes nos Zilog.
 
-- **`EI` (Enable Interrupts):** Ligar os Alarmes (O CPU pode ser interrompido para avisos vitais da Televisão ou do Teclado).
-- **`DI` (Disable Interrupts):** Desligar os Alarmes (Estás a fazer código ultra sensível de matemática temporal e precisas de ignorar tudo e não ser chateado por nada).
-- **`IM` (Interrupt Mode):** O Z80 tem 3 modos de Interrupção.
-  - *Modo 0*: Não suportado no Spectrum, não o uses.
-  - *Modo 1*: O normal do Spectrum. Sempre que a TV pisca, o CPU salta logo para a morada de ROM `0x0038`.
-  - *Modo 2*: O Modo Caótico (será falado num futuro episódio). Permite criares os teus próprios alarmes e funções.
+Por `EI` (Enable Interrupts) ditamos de bom grado à porta aberta franca dos céus abrindo escancaradamente o flanco perante a recetividade incontornável dos alertas imperiosos a assolar os muros erigidos. Neste prado a TV ou o pulsar vibracional frenético das matrizes periféricas apitam em silvos perfeitamente integrados com as premissas embutidas perante os ciclos em vigência das pausas. Em contrapartida as portas aferrolhadas sob a impiedade duma muralha cega a selar por um bloqueio inabalável traduzido singularmente na invocação severa à surdez mecânica inaudita dum lacónico `DI` (Disable Interrupts) confina no vazio toda e qualquer apelo intrusivo desterrando e vetando qualquer grito forasteiro externo à rotina imiscuída. Abençoado pilar intransponível e fundamental que veta as interferências ruidosas quando se abraça intimamente sem receios matemáticas cegas ou cadências precisas que definem exaustivamente e rogam os ciclos síncronos imaculados da máquina intocada para o infinito sucesso perante ecrãs estáticos incólumes imperiosos em pureza temporal cega ininterrupta limpa.
+
+Adicionalmente aos lacres e portões de aberturas de interrupções impõem a máquina balizar de vez e orquestrar de facto a índole exata do porte operatório ao embate em acoplamento central da dita cadência exata nas mnemónicas colossais do Interrupt Mode através do `IM` assentes por estrito dogma e ditames mecânicos colossais numa das três vias. Do infértil nulo vazio relegado a inexistências crónicas de uso estático nas encarnações inóspitas na casa das máquinas originais das placas matriz (Modo 0) resvalamos ao reino uníssonos pacífico perfeitamente síncrono da dita baliza nativa natural reinante nos ditos pastos de casa em todos os colossos de 48K por nós idolatrados. Ao ser cimentada a opção pelo normal do Modo 1 a televisão varre graciosamente as tranches das linhas escuras perante um vislumbre fugaz a estalar em salto contínuo rumo inquestionável aos albergues contidos intocáveis enraizados e fechados à sete chaves encastrados permanentemente numa abóbada residente na mítica glória perante a rotina fechada nos domínios da ROM gravados inalteravelmente no limite fixado de alocação absoluta central nas memórias exatas no local de zero trinta e oito cravado fixo assinado. A última muralha colossal do Modo Caótico imposta sob os confins absolutos libertadores desbravada livremente pelas águas imensas e criadoras e anárquicas do pilar central duma ditadura absolutista regida ditada e cunhada à nascença no seio singular da gloriosa alocação de endereços vetoriais independentes nas fronteiras assentes e recriadas autonomamente pelo leque das tabelas forjadas a aço no cume dos horizontes impulsionados do célebre e intrépido `IM 2`, que o leitor cruzará nos embates da engenharia futura aquando das vias do esoterismo criacional puro absoluto que ornarão este manuscrito das fundações mecânicas da lenda.

@@ -1,6 +1,5 @@
 # Escrever Jogos para o ZX Spectrum
-
-Tradução e adaptação para Português de Portugal (PT-PT) do aclamado livro **"How to Write ZX Spectrum Games"** de Jonathan Cauldwell. 
+Guia em Português de Portugal (PT-PT) sobre como escrever jogos para o ZX Spectrum. 
 
 Este repositório contém os capítulos traduzidos estruturados em Markdown e configurados como um site de documentação estática gerado com o **MkDocs**. Além disso, todos os blocos de código Z80 Assembly foram adaptados para serem totalmente compatíveis com o compilador moderno **sjasmplus**, incluindo carregadores BASIC automáticos (`.tap`) e instantâneos (`.sna`).
 
@@ -11,7 +10,7 @@ A documentação online está publicada em:
 
 ## Ferramentas Principais
 
-1. **sjasmplus**: Compilador cruzado (*cross-assembler*) moderno para o processador Z80, usado para compilar os códigos do livro.
+1. **sjasmplus**: Compilador cruzado (*cross-assembler*) moderno para o processador Z80, usado para compilar os códigos deste guia.
 2. **Fuse (Free Unix Spectrum Emulator)**: Emulador fiel do ZX Spectrum para testar os ficheiros gerados (`.tap` / `.sna`).
 3. **Ollama**: Servidor de modelos LLM local utilizado pelo Chatbot integrado na documentação para dar assistência em tempo real.
 

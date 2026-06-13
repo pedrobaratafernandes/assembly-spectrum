@@ -1,95 +1,86 @@
 # Aritmética no Z80: Fazer Contas (ZX Spectrum)
 
-Este documento resume o quinto episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, da autoria do Matt Heffernan. O foco deste episódio é a matemática. O Z80 não possui comandos nativos para multiplicação ou divisão; ele apenas consegue fazer **Somas (Add)** e **Subtrações (Sub)**. Toda a magia acontece manipulando o *Registo de Estado (Flags)*.
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste capítulo é a matemática básica. O modesto processador Z80 não possui comandos nativos gravados no seu hardware para realizar multiplicações ou divisões diretas; a sua proficiência reside estritamente nas operações de adição (`ADD`) e subtração (`SUB`). Todo o ecossistema aritmético de um videojogo, desde o cálculo de trajetórias complexas à pontuação no ecrã, é alcançado combinando estas duas pedras basilares e manipulando sagazmente o Registo de Estado (Flags).
 
-## 1. A Soma Básica (`ADD`)
+## A Soma Básica
 
-A instrução `ADD` junta dois valores e guarda o resultado. No Z80, tens a possibilidade de fazer somas "pequenas" (8-bits) e somas "grandes" (16-bits).
+A instrução `ADD` aglomera o valor de dois locais e guarda o resultado final num destino. Na arquitetura do Z80, os programadores têm à sua disposição a capacidade de efetuar somas "pequenas" de 8 bits e somas "grandes" agregando 16 bits.
 
-### Somas a 8-bits
-Para somas até ao valor 255 (8-bits), o destino é obrigatoriamente o **Acumulador (`A`)**. Todas as luzes (flags) são atualizadas como esperado (Zero, Carry, Sinal, etc).
-- **Exemplo Prático:**
-  ```assembly
-    ld a, 10          ; Coloca 10 na "gaveta" A
-    ld b, 5           ; Coloca 5 na "gaveta" B
-    add a, b          ; Faz A = A + B. O A passa a valer 15!
-  ```
-  - *Explicação para Iniciantes:* Fazer contas de 8-bits no Z80 é como fazeres uma conta de somar na cabeça usando a tua mão direita (o `A`). Trazes sempre o número que queres somar à tua mão, juntas o que já lá estava, e ficas com o resultado na mesma mão. 
+Quando o cenário exige somas até ao limite numérico de 255 (a capacidade máxima de 8 bits), o destino final da operação é obrigatoriamente o Acumulador (`A`). A grande vantagem desta via é que o processador atualiza harmoniosamente todas as luzes do seu painel de instrumentos (Flags), como o Zero, o Carry e o Sinal, consoante o resultado da operação.
 
-### Somas a 16-bits
-Para valores superiores a 255 (até 65535), usamos os registos duplos (`HL`, `BC`, `DE`). O `HL` atua como a tua "mão direita" gigante para onde vêm parar os resultados.
-- **A Grande Armadilha:** Fazer um `ADD` a 16-bits **não altera a flag de Zero (`Z`)** nem a flag de Sinal (`S`)! Ficam exatamente com o valor que tinham antes da conta. Apenas a flag de *Carry* (`C`) é atualizada se ultrapassares os 65535.
-- **Exemplo Prático:**
-  ```assembly
-    ld hl, 1000       ; Carrega 1000 no HL
-    ld bc, 500        ; Carrega 500 no BC
-    add hl, bc        ; Faz HL = HL + BC. O HL passa a valer 1500!
-  ```
-  - *Explicação para Iniciantes:* Como o CPU só consegue pensar em 8 bits de cada vez, somar 16 bits é um esforço tão grande para ele que ele não tem "tempo cerebral" para verificar se o resultado deu exatamente zero para te avisar nas luzes do painel. Tens de ser tu, depois de fazeres a conta, a testar as duas metades para saberes se deu zero!
+```assembly
+    ld a, 10          ; O Acumulador recebe o número 10
+    ld b, 5           ; O Registo B recebe o número 5
+    add a, b          ; A matemática decorre, totalizando 15 no Acumulador
+```
 
----
+Efetuar matemática de 8 bits no Z80 assemelha-se a resolver uma conta elementar usando estritamente a mão direita (o Acumulador `A`). O programador tem sempre de colocar a base da conta na sua mão, somar-lhe os valores presentes nos outros registos auxiliares e manter invariavelmente o resultado encerrado na mão inicial.
 
-## 2. A Magia do "Vai Um": Adição com Carry (`ADC`)
+Por outro lado, quando os números começam a dilatar e o valor do cálculo excede 255 (navegando até aos limites dos 65535, o máximo suportado nativamente pelos 16 bits), temos de recorrer aos pares de registos duplos, como o `HL`, `BC` ou `DE`. Nestes cenários ampliados, é habitualmente o par `HL` a assumir a função da "mão gigante" que serve de receptáculo final à soma.
 
-Quando tentas somar 255 + 2 num registo de 8 bits, o resultado "dá a volta" (overflow) e fica a 1, mas a luz do **Carry (`C`)** acende. Como somamos números ainda maiores (como 24 ou 32-bits)? Encadeando contas com o `ADC` (Add with Carry).
+```assembly
+    ld hl, 1000       ; Carregamos o valor base de mil no HL
+    ld bc, 500        ; Preparamos a parcela dos quinhentos no BC
+    add hl, bc        ; O somatório flúi para o HL, culminando em 1500
+```
 
-A instrução `ADC` soma três coisas ao mesmo tempo: `Destino = Destino + Origem + Luz do Carry`.
-- **Exemplo Prático (Somar de pedaço em pedaço):**
-  ```assembly
-    ; Imagina que estamos a somar um número gigante guardado em partes...
-    add a, c          ; Soma a parte pequena (baixa). Se passar de 255, acende o Carry!
-    ld l, a           ; Guarda o bocado pequeno da resposta no L
-    ld a, b           ; Pega na parte grande do número (alta)
-    adc a, d          ; Soma a parte grande + D + (O "Vai Um" da conta anterior!)
-    ld h, a           ; Guarda o bocado grande da resposta no H
-  ```
-  - *Explicação para Iniciantes:* Lembras-te de quando estavas na escola primária a aprender a somar no papel? Fazias duas colunas: as unidades e as dezenas. Primeiro somavas as unidades (usando o `ADD`). Se passasse de 10, dizias **"e vai um!"**. A instrução `ADC` faz exatamente isso na coluna seguinte: soma os números grandes, mas vai buscar a luzinha do "vai um" e adiciona-a ao bolo! 
+Contudo, existe uma enorme armadilha nesta expansão. Uma vez que o processador está construído para pensar fundamentalmente em tranches de 8 bits de cada vez, somar 16 bits de uma só assentada constitui um esforço tão massivo que o CPU esgota o seu "tempo cerebral". Como consequência, ele abandona a verificação rigorosa da matemática, o que significa que o comando de soma de 16 bits não altera a flag de Zero (`Z`) nem a flag de Sinal (`S`). Estas luzes de aviso mantêm inalterado o valor exato que detinham antes de a conta ter sequer começado, induzindo frequentemente os principiantes em erro. Apenas o transbordo absoluto e caótico do Carry (`C`) é assinalado de forma fiável caso a conta force o limite máximo dos 65535. Torna-se, portanto, responsabilidade estrita do programador escrever código subsequente que avalie mecanicamente as duas metades do resultado para inferir se o valor atingiu efetivamente o zero pretendido.
 
----
+## A Magia do "Vai Um": Adição com Carry
 
-## 3. A Subtração (`SUB` e `SBC`)
+Quando desafiamos as leis da física e somamos 255 e 2 num registo de 8 bits exíguo, a matemática dá inevitavelmente a volta (o célebre overflow). O valor mecânico zera e passa a 1, mas uma luz de emergência vital acende no painel: o Carry (`C`). Para conseguir somar números gigantescos de 24 ou 32 bits em processadores tão curtos, usamos ativamente este erro a nosso favor através do comando `ADC` (Add with Carry).
 
-A matemática para trás tem regras ligeiramente diferentes no Z80.
+Enquanto o `ADD` soma duas parcelas, o comando `ADC` é tricotómico: ele soma o destino, a origem e injeta ativamente no bolo o valor que estiver ditado pelo bit de Carry. 
 
-- **`SUB` (Subtração Normal):** É **exclusivamente de 8-bits**! Não existe um comando `SUB HL, BC` em lado nenhum da máquina. Funciona apagando o valor de outro registo do Acumulador (`A`).
-  ```assembly
-    sub b             ; Equivalente a A = A - B
-  ```
+```assembly
+    add a, c          ; Soma a parte baixa. O Carry reage se exceder 255!
+    ld l, a           ; Guardamos temporariamente a metade baixa da resposta em L
+    ld a, b           ; Puxamos a parte alta da nossa parcela para análise
+    adc a, d          ; Adicionamos a parte alta de D e absorvemos o "Vai Um" (Carry)
+    ld h, a           ; Trancamos a metade alta e o cálculo monstruoso conclui
+```
 
-- **`SBC` (Subtract with Carry):** Funciona exatamente como a soma, subtraindo o número e também o "pediu emprestado" (Carry). Como o Z80 não tem o `SUB` de 16-bits, os programadores são obrigados a usar o `SBC HL, BC` para subtrações grandes!
-- **Exemplo Prático (A Subtração a 16-bits):**
-  ```assembly
-    or a              ; Truque de mestre! Apaga o "Carry" para garantir que é zero.
-    sbc hl, de        ; Subtrai a 16-bits: HL = HL - DE - Carry(0). 
-  ```
-  - *Explicação para Iniciantes:* A instrução de subtrair coisas grandes vem sempre "estragada", porque ela tenta sempre subtrair também o "pedido emprestado" (o Carry) das contas anteriores. Para a usarmos como uma subtração normal limpinha, temos de usar o truque `OR A` (uma operação lógica falsa) que varre a sujidade do painel de luzes e apaga o Carry. Depois sim, a conta corre bem!
+Isto é análogo aos primórdios das aulas de matemática de lápis e papel onde separávamos a conta em duas colunas verticais singelas: unidades e dezenas. Ao somarmos primeiro as unidades usando um vulgar `ADD`, se a contabilidade excedesse as balizas dos dez, anunciávamos enfaticamente o "e vai um!". O `ADC` traduz literalmente esta transição, debruçando-se sobre a coluna seguinte e integrando docilmente esse "vai um" na fatia da dezena sem corromper a totalidade do número construído passo a passo.
 
----
+## A Subtração Ascética
 
-## 4. Subir ou Descer de Nível (`INC` e `DEC`)
+Regredir na linha matemática encerra idiossincrasias particulares sob o teto do Spectrum.
 
-Para contar os passos de um *loop*, usamos as ferramentas rápidas Incremento (somar 1) e Decremento (subtrair 1). Elas são muitíssimo mais eficientes que gastar ciclos com o `ADD` ou `SUB`.
+A instrução pura de subtração, a mnemónica `SUB`, atua invariavelmente na destruição do valor que o Acumulador carrega naquele exato milissegundo, amputando-lhe quantias à medida. E, revelando uma certa deficiência assimétrica da construção do Z80, o `SUB` destina-se exclusivamente a trabalhar no reduto dos 8 bits. Não procure o leitor um comando `SUB HL, BC` no manual de instruções, pois ele não foi concebido pela engenharia original.
 
-- **Exemplo Prático:**
-  ```assembly
-    inc b             ; B = B + 1 (Muito rápido!)
-    dec c             ; C = C - 1
-  ```
-- **A Grande Armadilha de 16-bits:**
-  ```assembly
-    dec hl            ; Subtrai 1 ao HL (16-bits).
-  ```
-  - *Explicação para Iniciantes:* O Z80 tem falhas nas ferramentas grandes. Se fizeres `DEC B` e o valor chegar a Zero, ele acende a luz `Z` no painel orgulhosamente e podes usar um `JR Z, sair`. Mas se fizeres `DEC HL` ou `INC DE`, **todas as luzes ficam inalteradas**! Não te podes fiar no painel depois de incrementares blocos de 16-bits.
+```assembly
+    sub b             ; Subtração linear do Acumulador com base no Registo B
+```
 
----
+Para sanar a ausência gritante de uma subtração nativa para números grandes, os engenheiros forçam-nos a abraçar a mnemónica da subtração espelhada com o vai-um: a `SBC` (Subtract with Carry). Comportando-se como uma irmã siamesa algorítmica da soma, o `SBC` recorta ativamente tanto o número invocado como a penalização ditada pelo "pedido emprestado" da contabilidade do Carry. Consequentemente, para se atingir a meta vulgar de subtrair dois grandes números de 16 bits sem herdar penalizações fantasmagóricas de rotinas transatas, é mandatório preparar o terreno antecipadamente.
 
-## 5. Inversão de Sinal (`NEG`)
+```assembly
+    or a              ; A esfregona divina: Limpa o painel de luzes!
+    sbc hl, de        ; Subtração intacta a 16 bits: HL sofre redução de DE unicamente
+```
 
-A matemática assinalada (`signed`) significa que o 8º bit de um número diz se ele é positivo ou negativo. A instrução `NEG` permite-te subtrair imediatamente o valor do Acumulador (`A`) por Zero, de forma a inverter o seu sinal.
+O uso audaz e insólito da operação condicional disjuntiva (`OR A`) atua como uma autêntica vassoura digital: como está a ser efetuada com ela própria sem somatórias nem permutas, purga qualquer sujidade luminosa do painel de Estado e força imperativamente a queda do Carry aos terrenos do silêncio elétrico. Desimpedido o passivo matemático, a subtração em bloco via `SBC` procede de forma incólume.
 
-- **Exemplo Prático:**
-  ```assembly
-    ld a, 42          ; A vida mudou a um passo de +42...
-    neg               ; ...para um doloroso tombo de -42!
-  ```
-  - *Explicação para Iniciantes:* O comando `NEG` (Negate) é o equivalente no teu teclado do sinal de "menos" numa calculadora. Se estavas no lucro de 42 euros, usas o `NEG` e passas para uma dívida de 42 euros. Fácil e rápido!
+## Subir ou Descer de Nível
+
+Para garantir iterações ligeiras e ágeis em repetições de laços (loops), o arsenal enche-se com micro operações dedicadas à subida e à descida em passo unitário: o Incremento (`INC`) e o Decremento (`DEC`). Evidenciam uma rapidez assombrosa em detrimento do uso maçudo de injetar somatórias elementares usando o massivo e letárgico `ADD`.
+
+```assembly
+    inc b             ; Aceleração súbita do iterador principal para diante
+    dec c             ; Contagem decrescente com agilidade imbatível
+```
+
+Contudo, até as ferramentas microscópicas albergam paradoxos colossais de engenharia dentro dos confins dos 16 bits.
+
+Se na modalidade dos 8 bits aplicarmos uma erosão via `DEC B` e a rocha se pulverizar na totalidade roçando o Zero absoluto, o painel do processador reflete triunfalmente a anulação acendendo gloriosa a flag de Zeta (`Z`), e facultando o gatilho perfeito para um `JR Z` nos levar para os terrenos de fuga. Contrastantemente, caso repliquemos o mesmo rigor para as montanhas-russas dos blocos conjugados operando um corpulento `DEC HL` ou um vasto `INC DE`, a indiferença do processador é esmagadora: e todas as luzes continuam letargicamente caladas perante as transições. É perigoso, falacioso e fatal fiar a orientação do código nos LEDs do Z80 imediatamente após a iteração compactada de registos estendidos de 16 bits.
+
+## A Inversão Magnética do Sinal
+
+Os contornos de uma matemática polida num enquadramento assinalado (`signed`) obrigam à interpretação subtil onde o oitavo bit atua como sentinela perante a barreira dicotómica do positivo e do negativo. Se a intenção programática visa espelhar esta natureza num ápice, a singela instrução `NEG` (Negate) responde subtraindo mecanicamente e no interior de uma redoma vazia do zero imaginário o valor flutuante presente no Acumulador, convertendo o valor global no seu reverso geométrico.
+
+```assembly
+    ld a, 42          ; O nosso Acumulador ergue-se solarengo até 42 unidades
+    neg               ; O tombo cavernoso e súbito esboroa-o perante -42 unidades
+```
+
+Desafiando a analogia com clareza, o comando `NEG` assenta a sua fundação algorítmica eximiamente de forma idêntica à tecla singular de permuta de sinal de menos encastrada nos circuitos sintéticos de uma comum e vulgar máquina de bolso das antigas contabilidades caseiras. Transformar quarenta e dois cêntimos em dividendos numa dívida de quarenta e dois cêntimos encontra-se doravante unicamente a uma singela instrução de distância.

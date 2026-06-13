@@ -1,6 +1,6 @@
 # O Mundo Cá Fora: Input e Output (ZX Spectrum)
 
-Este documento resume o oitavo episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. Depois de passarmos episódios trancados no "cérebro" do computador a fazer contas na memória, chegou a altura de interagir com o mundo real: ler o Teclado e apitar no Altifalante (Beeper)!
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Depois de passarmos episódios trancados no "cérebro" do computador a fazer contas na memória, chegou a altura de interagir com o mundo real: ler o Teclado e apitar no Altifalante (Beeper)!
 
 ## 1. As Portas Mágicas e a ULA
 

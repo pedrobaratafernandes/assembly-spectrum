@@ -1,6 +1,6 @@
 # Gráficos no ZX Spectrum: Bem-vindo à Matriz
 
-Este documento resume o décimo primeiro episódio do tutorial de **Assembly Z80 para o ZX Spectrum**, criado pelo Matt Heffernan. É aqui que descobrimos como a placa gráfica do Spectrum obriga a acrobacias mentais extremas para pintar 1 único pixel no ecrã!
+Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. É aqui que descobrimos como a placa gráfica do Spectrum obriga a acrobacias mentais extremas para pintar 1 único pixel no ecrã!
 
 O Spectrum oferece três caminhos diferentes para desenhar gráficos, com diferentes níveis de complexidade.
 
