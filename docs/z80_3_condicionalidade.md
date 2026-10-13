@@ -1,105 +1,195 @@
-# Condicionalidade no Z80: Como o Processador Toma Decisões (ZX Spectrum)
+# Condições, Saltos e Ciclos
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste capítulo é desvendar como a arquitetura do processador lida com testes lógicos e condições matemáticas para implementar fluxos de código iterativos ou ramificados, de forma semelhante aos famosos comandos condicionais e ciclos de repetição que encontramos nas linguagens de programação modernas.
+Um programa precisa de tomar decisões: "se a tecla está premida, mover o jogador", "repetir isto 10 vezes". No Z80, todas as decisões se tomam da mesma forma: uma instrução altera as **flags** e, a seguir, um salto condicional verifica-as.
 
-## O Painel de Instrumentos: O Registo de Estado
+## O Registo de Flags
 
-Toda a tomada de decisão no processador Z80 baseia-se na verificação de um único registo de 8 bits conhecido como `F` (Flags ou Estado). Este registo atua como o verdadeiro painel de instrumentos do sistema. Durante a execução do código, certas operações matemáticas ou comandos de alteração de bits acendem ou apagam as "luzes" (os bits individuais) deste registo de forma totalmente automática, espelhando a natureza do último cálculo efetuado.
+O registo `F` guarda, em bits separados, informação sobre o resultado da última operação aritmética ou lógica:
 
-As luzes de estado mais cruciais para a navegação do código são o Zero (`Z`), o Carry (`C`), o Sinal (`S`) e a Paridade/Overflow (`P/V`). A flag Zero acende sempre que o resultado de uma operação matemática ou de incremento/decremento se anula exatamente a zero. A flag Carry, que traduz o tradicional "vai um" ou transporte, ativa-se quando uma operação matemática excede a capacidade estrutural do registo de 8 bits (ultrapassando 255), ou quando ocorre um desnível comparativo na subtração. A flag de Sinal alerta que o bit mais significativo assumiu o valor de um, o que em aritmética traduz um resultado negativo. Finalmente, a Paridade deteta quebras mecânicas na representação de sinais ou avalia se o balanço dos bits resulta num formato par ou ímpar.
+| Bit | Flag | Fica a 1 quando… | Condições |
+| :---: | :--- | :--- | :--- |
+| 7 | S (sinal) | o bit 7 do resultado é 1 (número negativo, em complemento para dois) | `m` (*minus*), `p` (*plus*) |
+| 6 | Z (zero) | o resultado é 0 | `z`, `nz` |
+| 4 | H (meio transporte) | há transporte do bit 3 para o bit 4 (usado por `daa`) | — |
+| 2 | P/V (paridade / *overflow*) | depende da instrução: paridade par ou transbordo com sinal | `pe`, `po` |
+| 1 | N (subtração) | a última operação foi uma subtração (usado por `daa`) | — |
+| 0 | C (*carry*, transporte) | uma soma passa de 255 ou uma subtração precisa de "pedir emprestado" | `c`, `nc` |
 
-Para forçar o computador a tomar decisões de bifurcação do código com base nestas informações, utilizamos as mnemónicas de condição acopladas diretamente às instruções de salto ou retorno. Ordens como `Z` e `NZ` verificam a igualdade a zero; `C` e `NC` testam o transporte; e `M` ou `P` determinam se o terreno matemático lidou com números negativos (Minus) ou positivos (Plus).
+Nem todas as instruções alteram todas as flags. Por exemplo, `ld` nunca as altera, `inc` e `dec` de 8 bits alteram Z mas não C, e `inc`/`dec` de 16 bits não alteram nenhuma. Na dúvida, consulte uma tabela de instruções do Z80.
 
-## A Arte de Tomar Decisões
+## Comparar: CP
 
-Para replicarmos um bloco de controlo e podermos bifurcar as ações de um jogo consoante um evento, precisamos inegavelmente de conseguir testar valores entre si. É aqui que entra o poderoso comando de comparação, o `CP` (Compare). A sua magia reside no facto de permitir comparar um determinado número com o valor atual do Acumulador (`A`) sem corromper a integridade do dado principal do Acumulador. Sob o capô do processador, o Z80 executa transitoriamente uma subtração fantasma: ele efetua a matemática apenas com o intuito de iluminar o painel de luzes de aviso e em seguida descarta a operação, poupando a variável alojada no Acumulador de qualquer dano.
+`cp n` compara o acumulador com `n`: faz a subtração `A − n`, altera as flags e deita fora o resultado, por isso `A` fica igual. Depois de `cp n`:
 
-```assembly
-    ld a, 40          ; A vida atual do herói é 40
-    cp 42             ; Compara a vida com o número crítico 42
-    jr c, pouca_vida  ; Se acendeu a luz de Carry (A < 42), salta para o alarme!
-    jr z, vida_exata  ; Se acendeu a luz Zero (A == 42), avança para outra rotina
-```
+| Situação | Flags | Salto a usar |
+| :--- | :--- | :--- |
+| `A = n` | Z = 1 | `jr z,…` |
+| `A ≠ n` | Z = 0 | `jr nz,…` |
+| `A < n` (sem sinal) | C = 1 | `jr c,…` |
+| `A ≥ n` (sem sinal) | C = 0 | `jr nc,…` |
 
-Na prática, a instrução atua como um fiscal mecânico. Pesa duas caixas numa balança de braços, assinala os resultados das discrepâncias luminosas no painel central do Z80 e retira-se, não beliscando o conteúdo das caixas. Se as duas caixas tiverem um conteúdo equiparável - ou seja, se o `A` for igual a 42 -, a balança crava em zero diferença e a luz `Z` ilumina-se. Contudo, se a caixa inicial for menos corpulenta que o valor alvo a testar, a força descendente é insatisfatória e resulta num empréstimo digital que se revela na luz do Carry. Analisando subsequentemente estas luzes, o código emana diretrizes sob a forma de saltos de execução.
-
-## Saltos Condicionais e a Otimização de Ciclos
-
-No reino do Assembly dispomos fundamentalmente de duas abordagens de transporte de linha condicional: o salto de larga escala (`JP` - Jump) e a travessia relativa de curto alcance (`JR` - Jump Relative). A eleição criteriosa entre estas duas modalidades radica-se intrinsecamente na gestão do tempo de processamento, frequentemente quantificado na métrica de Estados-T (T-States), os ciclos absolutos de oscilação do processador. O velhinho ZX Spectrum pulsa ritmadamente a 3.5 MHz (três milhões e quinhentos mil ciclos por segundo).
-
-A instrução todo-poderosa `JP` garante um salto imperativo e incondicional, ou extremamente condicionado a todos os cenários da tabuada das Flags, direcionado a qualquer abismo ou topo do bloco de 64 KB de memória. Contudo, esta segurança absoluta é transacionada por um custo temporal considerável: o comando absorve invariavelmente dez ciclos T a sua execução completa. 
-No pólo diametralmente oposto reside o ágil e versátil `JR`. Relegado pela arquitetura original a testar estritamente o estado do Zero e do Carry, este comando engloba uma dinâmica excecional em torno da velocidade de resposta. Caso a avaliação condicional falhe e o salto estipulado seja liminarmente negado, o processador descarta a ordem num ápice e prossegue caminho esgotando módicos sete ciclos da máquina. Se a validação for concedida, a penalização processual agrava-se com a sobrecarga de decifrar o cálculo do novo endereço relativo, ascendendo aos doze ciclos laboriosos.
-
-Esta dualidade transforma o comando relativo num aliado imbatível aquando da necessidade arquitetural de tecer ciclos (`loops`) com elevado grau de repetição. Imagine-se um percurso repetitivo de cem voltas; nas noventa e nove vezes que a verificação de saída falha, a máquina descarta a verificação gastando exíguos 7 ciclos contínuos, reservando o embate temporal dos 12 ciclos apenas para a fatídica volta de saída, poupando uma imensidão de tempo que seria perpetuamente triturado por saltos absolutos a cada passagem da órbita.
+`cp` aceita um valor (`cp 42`), um registo (`cp b`) ou um byte na memória (`cp (hl)`, `cp (ix+2)`).
 
 ```assembly
-    jp m, valor_negativo ; Salta em longitude se a operação originou valores negativos
+    ld a,(vida)
+    cp 10               ; vida < 10?
+    jr c,pouca_vida     ; sim.
+    cp 100              ; vida = 100?
+    jr z,vida_cheia     ; sim.
 ```
 
-Em suma, se necessitarmos de ordenar ao leitor de código que transite rapidamente pela vizinhança na próxima "rua" local, optamos pelo comando ágil e relativo. Se, de modo reverso, o código for defrontado com a imposição imprevista de se transladar sem hesitação para a periferia diametralmente distante do hardware do Spectrum, o autocarro da carreira longa e constante (`JP`) é imperativo.
+Para testar se `A` é zero não é preciso `cp 0`: `and a` ou `or a` deixam `A` igual e põem a flag Z de acordo com o seu valor (e limpam o *carry*), e ocupam um byte em vez de dois.
 
-## Retornos Condicionais
+## Saltos
 
-Para além da translação e do salto, a saída imaculada de uma qualquer sub-rotina invocada de antemão por parte da raiz do programa alcança-se utilizando uma instrução unívoca chamada `RET`. Mais uma vez, o grau de versatilidade e controlo em malha fina oferecido pela linguagem manifesta a sua força ao propiciar o atrelamento livre e desimpedido das condições já estudadas a estas portas de saída processual, convertendo a simples evasão cega num abandono fundamentado por condições do código.
+| Instrução | Tamanho | Alcance | Condições | *T-states* |
+| :--- | :---: | :--- | :--- | :--- |
+| `jp endereço` | 3 bytes | qualquer endereço | todas: `z`, `nz`, `c`, `nc`, `m`, `p`, `pe`, `po` | 10 (salte ou não) |
+| `jr endereço` | 2 bytes | −128 a +127 bytes | só `z`, `nz`, `c`, `nc` | 12 se salta, 7 se não salta |
+| `jp (hl)` | 1 byte | o endereço em `HL` | nenhuma | 4 |
+| `djnz endereço` | 2 bytes | −128 a +127 bytes | `B` ≠ 0 após decrementar | 13 se salta, 8 se não salta |
+
+`jr` é mais pequeno e, quando a condição falha, mais rápido. `jp` chega a todo o lado e tem mais condições. Em ciclos curtos usa-se normalmente `jr` ou `djnz`.
+
+O Spectrum corre a 3,5 MHz: cerca de 3 500 000 *T-states* por segundo e 69 888 em cada fotograma de 1/50 s. Estes números servem para estimar quanto tempo demora uma rotina.
+
+## Sub-rotinas e Retornos Condicionais
+
+`call endereço` guarda na pilha o endereço da instrução seguinte e salta; `ret` vai buscar esse endereço e volta. Tanto `call` como `ret` têm versões condicionais, com as mesmas condições que `jp`:
 
 ```assembly
-  verifica_inimigo:
-    cp 0              ; Atingimos mortalmente o inimigo e ele desceu aos zero pontos?
-    ret z             ; Na eventualidade de sim, abandonamos a sala de avaliação sem delongas!
-    dec a             ; Se a flag contradiz a morte, decrescemos-lhe manualmente novo ponto...
-    ret               ; Transição derradeira para de fora do escopo rotinal
+    call z,explode      ; chamar "explode" só se Z = 1.
+    ret nc              ; voltar só se C = 0.
 ```
 
-Esta construção lógica aproxima surpreendentemente o raciocínio mecanicista de uma plataforma de oito bits às idiossincrasias legíveis do alto-nível. Em vez de entulhar o código de contestações ou ramificações longínquas a testar exaustivamente a validade de uma morte, impomos de forma perentória: se o adversário já expirou à entrada (ditada pelo ascendimento imediato da flag Zero), é absolutamente descabido prosseguir pela escadaria de instruções, regredindo aos comandos originais. 
-
-## A Mecânica de Ouro das Repetições
-
-Sendo o varrimento cíclico de rotinas e listas tão essencial à vitalidade processual e pragmática, a equipa técnica originária dos semicondutores dotou a pastilha com uma maravilha batizada de modo profuso e extenso sob o acrónimo `DJNZ` (Decrement and Jump if Not Zero).
-
-Atuando sempre sob o patrocínio matemático exclusivo e intransmissível do registo unívoco e singular `B` no painel central, a macro embutida engaja a subtração primária desta contagem global num sopro sequencial em simultâneo com um desdobramento relâmpago: se a operação subtrativa ainda não arrastou o `B` em direção à nulidade do algarismo central "0", o processador arremessa de seguida sem interrupções uma instrução de salto curvo regressando aos estribos rotulados pela linha assinalada por parte da etiqueta de navegação.
+Um `ret` condicional no início de uma rotina é uma forma compacta de "se não houver nada a fazer, sair":
 
 ```assembly
-    ld b, 5           ; Carregamos previamente a nossa máquina com cinco rondas
-  meu_ciclo:
-    sla a             ; Rebatimento matemático dos bits contidos no Acumulador 
-    djnz meu_ciclo    ; Extinção gradual e automatizada do valor base "B" rumo ao recomeço
+mover_inimigo:
+    ld a,(ix+0)         ; estado do inimigo.
+    and a               ; está a 0 (morto)?
+    ret z               ; sim, não há nada a fazer.
+    ; ... mover o inimigo ...
+    ret
 ```
 
-Despida de preconceitos, em vez de exigir que consumamos blocos sucessivos e maçudos de desagregação gradual via subtração individual de "-1", teste formal da luz indicadora à saída do ciclo e nova requisição estanque de um transbordo espacial relativo, a mecânica incisiva do `DJNZ` absorve o tempo mental iterativo atuando inteiramente fora do espetro visual e, suprema bênção da abstração técnica, isenta da conspurcação letal sob as Flags operativas. Atua silenciosamente sem nunca acionar e transmutar inadvertidamente uma luz central que aniquilaria incondicionalmente todos os testes correlacionados que antecederam a repetição no bojo do nosso pequeno algoritmo focado. 
+## Ciclos com DJNZ
 
-## Ramificações Lógicas Intercaladas
-
-É perante o assalto às exigências práticas complexas que a elegância singela mas contínua atinge um epílogo na reprodução fidedigna dos mais longos cenários binários alternantes do formato "se-senão". Cruzando a leitura assertiva do `CP` e a conjugação com saídas rápidas sob luzes incólumes ou salpicos exatos de variação das chaves vitais, desbravamos uma ramificação infalível para qualquer cenário do ecossistema informático de época.
-
-Se intentarmos conceber um balancé estabilizador que empurre infalivelmente para cima um valor flutuante até estabilizar subitamente perante o teto imutável dos 42 ou desça graciosamente com peso avassalador rumo à meta ditada em retrocesso, geramos uma dança orquestrada:
+`djnz` (*Decrement and Jump if Not Zero*) subtrai 1 a `B` e salta se `B` não ficou a 0. Não altera as flags. É a forma mais simples de repetir algo um número fixo de vezes (até 256, com `B` = 0 no início):
 
 ```assembly
-  normaliza_para_42:
-    cp 42             ; O fiscal avalia categoricamente
-    ret z             ; Se Z incide sobre nós, finalizamos imediatamente
-    jr nc, muito_alto ; Se o transporte do Carry esteve omisso, a base extravasou!
-
-  muito_baixo:
-    inc a             ; Escalar e subverter o declínio 
-    ret               ; Retoma da viagem principal
-    
-  muito_alto:
-    dec a             ; Rampa da queda imbuída pelo excesso verificado no embate
-    ret               ; Extrato concluso final da instrução base de transição
+    ld b,8              ; 8 vezes.
+ciclo:
+    ; ... corpo do ciclo ...
+    djnz ciclo
 ```
 
-Este fluxo engenhoso moldado como a fluidez dos afluentes numa ramificação rochosa comprova a riqueza intrínseca, densa mas indubitavelmente esguia e inebriante imposta numa linguagem tão restritiva e ao mesmo tempo incrivelmente fluída para os propósitos a cumprir por vias rudimentares de codificação original pura. 
+A etiqueta tem de ficar **depois** de `ld b,8`. Se ficasse antes, `B` voltaria a 8 em cada volta e o ciclo nunca acabaria. Se o corpo do ciclo usar `B` (ou chamar uma rotina que o use), guarde-o com `push bc` e `pop bc`.
 
-## Controlo Manual do Vai-um (Carry)
-
-Num degrau complementar da arte, não é incomum cruzarmo-nos com fendas onde as manipulações cirúrgicas imperam e o processador reclama a alteração unilateral do botão elétrico de sinalização de Carry (`C`) encastoado no seu painel. 
-
-Acioná-lo isoladamente obriga à diretiva `SCF` (Set Carry Flag) que eleva formal e obrigatoriamente, à revelia do contexto precedente, as condições em jogo forçando com um peso absoluto a dita flag até 1. Contrastando abertamente com um erro clássico do léxico iniciante, a indicação `CCF` renega ostensivamente as pretensões de ser o pilar da descida para nulidade (falso Clear); pelo revés, assume ser o Complement Carry Flag (Comutador do Carry) procedendo inequivocamente à polarização oposta a vigorar transitoriamente: se o botão está na calha de ativado, atua pelo extermínio do estado revertendo-o à estaca zero; se desprovido de correntes acorda estrepitosamente em clarão elétrico perfeitamente comutado. 
+Para contar mais de 256 vezes, usa-se um par de registos. Como `dec bc` não altera as flags, testa-se o zero com `ld a,b` e `or c`:
 
 ```assembly
-    scf               ; Arrombamos a resistência ativando obrigatoriamente a flag ao cume (1)
-    ccf               ; Comutador atuado, revertendo a força elétríca para o zero
-    ccf               ; Renovação do choque polar, ressurgindo das cinzas até à glória positiva
+    ld bc,1000          ; 1000 vezes.
+ciclo2:
+    ; ... corpo do ciclo ...
+    dec bc
+    ld a,b
+    or c                ; BC = 0?
+    jr nz,ciclo2
 ```
 
-A mnemónica atua como um vulgar botão da televisão que, perante pressões idênticas e indistintas comuta o canal; mas dada a desvinculação absoluta de garantias de descida nula sem incertezas inerentes do comutador rotativo da flag em cenários insidiosos sem controlo original absoluto do contexto anterior no painel, a via ortodoxa imposta pelo programador sagaz no extermínio de qualquer Carry residual transfigura-se num ardil matemático onde o `OR A` reina inabalável ditando, pela essência elementar das premissas intrínsecas da operação da porta lógica, um abate sumário sem delongas, pondo ordem inabalável pela supressão irredutível num zero garantido sob todo o painel luminescente do modesto ZX Spectrum.
+## "Se… Senão"
+
+Um `if/else` traduz-se com dois saltos: um para o ramo "senão" e outro, no fim do ramo "se", para saltar por cima do "senão". Este exemplo aproxima `A` de 42 em uma unidade:
+
+```assembly
+aproxima:
+    cp 42               ; comparar A com 42.
+    ret z               ; já é 42: nada a fazer.
+    jr nc,muito_alto    ; A > 42.
+    inc a               ; A < 42: subir.
+    ret
+muito_alto:
+    dec a               ; descer.
+    ret
+```
+
+## O Carry à Mão
+
+Três instruções mexem diretamente na flag de *carry*:
+
+| Instrução | Efeito |
+| :--- | :--- |
+| `scf` | Põe C = 1. |
+| `ccf` | Inverte C (não o limpa!). |
+| `and a` ou `or a` | Põem C = 0 (e não alteram `A`). |
+
+Para limpar o *carry* antes de um `sbc hl,de` (capítulo seguinte), usa-se `and a` ou `or a`.
+
+## Um Programa Completo
+
+Este programa conta de 9 até 0, mostrando cada número, e depois classifica três valores em relação a 42, mostrando "<", "=" ou ">". Usa `djnz`, `cp` e saltos condicionais.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+
+    ld b,10             ; contagem decrescente de 9 a 0.
+conta:
+    ld a,b
+    dec a               ; B vai de 10 a 1; mostrar B-1.
+    add a,'0'           ; transformar o algarismo em carácter.
+    rst 16
+    ld a,' '
+    rst 16
+    djnz conta
+    ld a,13
+    rst 16
+
+    ld a,10             ; classificar 10, 42 e 200.
+    call classifica
+    ld a,42
+    call classifica
+    ld a,200
+    call classifica
+    ret
+
+    ; Mostrar "<", "=" ou ">" conforme A seja menor, igual ou maior que 42.
+classifica:
+    cp 42
+    jr z,igual
+    jr c,menor
+    ld a,'>'            ; nem igual nem menor: maior.
+    jr mostra
+igual:
+    ld a,'='
+    jr mostra
+menor:
+    ld a,'<'
+mostra:
+    rst 16
+    ld a,13             ; mudar de linha.
+    rst 16
+    ret
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_03_1.tap"
+        SAVETAP  "z80_03_1.tap",BASIC,"z80_03_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_03_1.tap",CODE,"z80_03_1",start,fim-start
+```
+
+O resultado é a linha `9 8 7 6 5 4 3 2 1 0` seguida de `<`, `=` e `>`.
+
+## Exercícios
+
+1. Altere `classifica` para mostrar "<" só se `A` for menor do que 10.
+2. Use `djnz` para desenhar uma linha de 32 asteriscos.
+3. Reescreva o ciclo de contagem com `jr nz` em vez de `djnz`. Qual das versões ocupa menos bytes?

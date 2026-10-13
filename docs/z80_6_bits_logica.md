@@ -1,66 +1,177 @@
-# Magia Negra dos Bits: Lógica e Rotações (ZX Spectrum)
+# Bits, Lógica e Rotações
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste capítulo desce ao patamar arquitetural mais recôndito e basilar da máquina: a manipulação de bits individuais incrustados dentro da formatação de bytes. É nestas fundações binárias que a magia negra do código máquina impera.
+No Spectrum, muita informação está guardada em bits individuais: cada bit do ecrã é um píxel, cada bit lido do teclado é uma tecla, e os atributos juntam tinta, papel, brilho e *flash* num só byte. Este capítulo mostra as instruções que trabalham com bits.
 
-## A Essência da Lógica Booleana
+## Operações Lógicas
 
-Para operarmos microcirurgias dentro de um byte, o processador Z80 municiou-nos de um quarteto formidável de instruções nativas que cruzam e entrelaçam as luzes operatórias (bits) residentes no Acumulador (`A`) com os bits alojados em qualquer outro registo periférico da placa. Estes comandos servem primariamente o propósito ancestral de criar aquilo que os programadores denominam de "Máscaras".
+As operações lógicas atuam bit a bit entre o acumulador e outro valor, e deixam o resultado em `A`:
 
-O filtro matricial, corporizado pela mnemónica `AND`, obriga o processador a confrontar dois conjuntos numéricos e determinar uma sobreposição de verdadeiros. Sob a sua vigência, o bit do resultado final só permanecerá aceso (com o valor 1) se, e unicamente se, os dois bits originais que lhe deram origem partilhassem igualmente o estado iluminado de 1. Oculta no seu interior reside um truque reverenciado: ao ordenar um redundante `AND A` (confrontando o Acumulador consigo mesmo), o valor contábil intato é magicamente isentado de erros residuais, visto que a instrução expurga de modo intrínseco e silente a luz de transporte do Carry, forçando um abismo impoluto (`C=0`) sem custos extra.
+| Instrução | Bit do resultado é 1 quando… | Uso típico |
+| :--- | :--- | :--- |
+| `and n` | os dois bits são 1 | **apagar** bits: os bits a 0 na máscara ficam a 0 |
+| `or n` | pelo menos um dos bits é 1 | **ligar** bits: os bits a 1 na máscara ficam a 1 |
+| `xor n` | os bits são diferentes | **inverter** bits: os bits a 1 na máscara trocam de valor |
+| `cpl` | (só `A`) o bit era 0 | inverter todos os bits de `A` |
 
-Deslocando-nos para o domínio da adição lógica, a diretiva `OR` atua como um autêntico acendedor digital. Deste prisma, não é requerida a dupla afirmação; se apenas um dos bits interpelados resplandescer em 1, o resultado final irradiará incontestavelmente um luminoso 1. 
-
-O grau máximo da singularidade reside no `XOR` (Exclusivo). Esta instrução balança a balança exigindo que a faísca apenas deflagre caso os dois intervenientes partilhem naturezas estritamente divergentes; a igualdade, quer sejam ambos luz (1) ou ambos trevas (0), colapsa incondicionalmente no vazio de um zero resultante.
-Não é, contudo, a sua exclusividade que a celebrizou, mas o seu desígnio derivado. Ao submeter o Z80 à instrução circular `XOR A`, forçamos um embate em que todos os espelhos do registo coincidem consigo mesmos na igualdade total, originando invariavelmente uma poeira nula generalizada: é este o método universalmente sagrado, rápido e avassalador de pulverizar completamente o Acumulador, convertendo o seu interior no puro Zero Absoluto das contabilidades.
-
-Finalmente, a mnemónica da imagem invertida, conhecida como `CPL` (Complemento), atua como um portal cósmico no Z80. Sob as suas ordens imperiais, todo o contingente magnético no seio do Acumulador revira do avesso, condenando os bits caídos na sombra a erguerem-se nas luzes, e lançando todo o bit cintilante para a voragem opaca das trevas.
-
-```assembly
-    ld a, 0xFF        ; Incandesce visceralmente a totalidade do "A" (11111111)
-    and 0x0F          ; Filtragem implacável pela máscara (00001111)
-                      ; Metade da arquitetura cai: O 'A' assume o 0x0F (00001111)
-    xor a             ; Subversão singular que empurra fatalmente o conjunto ao Zero raso
-```
-
-## O Deslizamento de Bits (Shifts)
-
-Perante o embaraço monumental provocado pela ausência cirúrgica de um engenho multiplicador nativo no seio do chip Z80, os percursores da engenharia deslindaram uma saída airosa que se baseia inteiramente no arrastamento espacial das cadeiras numéricas. Arrastar deliberadamente a corja inteira dos bits num degrau à esquerda providencia com estrita regularidade o dobro orgânico do número original; puxá-los no leito reverso da direita garante a retribuição do estilhaço pela meia divisão.
-
-O compasso da multiplicação repousa sobre a sigla `SLA` (Shift Left Arithmetic). Imbuído na arte da subversão empírica, o processador força os oito formigueiros numéricos numa estocada feroz para as alas da esquerda. Na orla abandonada da extrema-direita, deposita pacatamente um zero (`0`) compensatório. Simultaneamente o infeliz dígito que pontificava e que transborda irremediavelmente a extremidade limite esquerda é gentil e invariavelmente resgatado no cesto suspenso da mítica *Carry Flag*.
-
-Com a intenção solene de providenciar a secção áurea na vertente das divisões aritméticas para as linhas orientais, subimos ao altar do `SRA` (Shift Right Arithmetic). Num deslizar simétrico mas repleto de deferência pelas grandezas assinaladas negativas e positivas, a orla abandonada no declive esquerdo assegura estoicamente a fotocópia em duplicado do bit original demarcador do sinal, impedindo de forma salutar a metamorfose aberrante em dados impuros ou ilegais.
-
-O contraponto impessoal a esse último traduz-se no `SRL` (Shift Right Logical) que, alienado de sensibilidades ou balanços matemáticos estritos, arremessa tudo à direita enquanto incrusta gélidamente os zeros lógicos recém-nascidos na lateral extrema recém-demitida à esquerda.
-
-## A Roda Gigante dos Bits
-
-E perante o vislumbre de um bit desamparado atirado impiedosamente às rochas do oblívio, surge o advento elegante que transforma arrastamentos abismais numa carrossel etéreo circular. Assim renascem os Rotates (Rotações), onde a geometria encontra feição perene através do bailado analógico figurado numa clássica roda-gigante encastrada no peito do modesto microcomputador.
-
-Para acomodar as nuances e os tentáculos de controlo desta geometria, o sistema dividiu-se na consagração de dois mundos dissemelhantes: o reino da Grande Roda das Nove Cadeiras e o circuito condensado dos Oito Luzeiros.
-
-Sob as bandeiras clássicas `RL` (Rotate Left) e `RR` (Rotate Right) assistimos atónitos à ascensão do Nono Trilho. Imagine-se um engenhoso carrossel albergando nove cabines de ferro. Oito destas cadeiras encontram-se confinadas ao interior do byte propriamente dito, cabendo ao isolado sinalizador do Carry a responsabilidade de encarnar a mítica nona cadeira na ponte de controlo externa.
-Nesta mecânica intrincada, um `RL` expele o transeunte situado na poltrona última e mais valiosa do byte não para a escuridão abismal dos Shifts, mas atira-o sem mácula até às catacumbas do registo exterior do *Carry*; o pobre desgraçado que há instantes vegetava em pousio na referida cadeira do *Carry* é impelido pelo vento circular assumindo por permuta absoluta o leme original no trono primevo do alicerce do byte. Um círculo irrepreensível, total, majestoso e incólume, abrangendo o núcleo e as vizinhanças dos painéis processuais do aparelho do sistema sem mácula de poeira residual ou esquecimentos subjacentes nos rescaldos computacionais efetuados.
-
-A contra-balança desprovida da dependência exógena recai de pleno nas rodas circunscritas à morada exclusiva: a mnemónica de cariz cíclico de nomeada `RLC` e da sua congénere de espelho na marcha `RRC`.
-Aqui a grande arquitetura confina-se às oitos cabines locais que balizam o limite do byte elementar nativo interno do registo sem saídas perimétricas impostas na geografia exterior. Aquando dum ressalto imposto no `RLC`, a órbita arrasta e engole o transeunte liminar diretamente rumo à sua cadeira primordial no nascedouro da morada numérica. Mas atente-se num rasgo solene em honra dos caprichos dos criadores: em pleno voo abismal que une transversalmente as orlas dos bytes, a alma que sobrepõe a travessia grita em silêncio replicando impiedosamente a sua imagem para repousar um clone efémero do seu porte e essência dentro do repositório da velha cápsula do painel independente chamado Carry. No `RLC`, a flag encarna um clone fugaz de um corpo em órbita alheia sem o estorvar e sem imiscuir nas esferas elementares das passagens reais decorridas puramente no seio do registo original abordado e transfigurado iterativamente até ao esgotamento matemático do jogo codificado no ecrã brilhante do engenho vetusto. 
-Coroando estas dádivas nativas, a linguagem contemplou atalhos privilegiados exclusivos para o altar do Acumulador batizados de `RLCA` e `RRCA`, permitindo estas cambalhotas numa fração diminuta de tempo temporal das cadências.
-
-## Operações de Sniper
-
-Por diversas vezes no cômputo intrincado dum universo vetorial num ecrã diminuto de cinescópio ou na gestão hermética dos batimentos de interruptores acionados furiosamente nos plásticos flexíveis dos famigerados botões coloridos de teclados enrijecidos pelas borrachas ríspidas, o que ansiamos repousa unicamente no pulsar duma singela fracção num plano infundado. Precisamos unicamente de dissecar com a letalidade perita de um sniper a precisão minúscula enquadrada numa artilharia cirúrgica despidas das engrenagens maçudas mascaradas com `AND` e `OR` exaustivos perante os nossos olhos que nos ofuscam na contabilidade elementar microscópica do sistema do Z80.
-
-A resposta divina descortina-se na enigmática matriz da Família de Bits.
-Começamos a ofensiva alicerçados sob o `BIT [numero], registo`. Esta diretiva imaculada sonda em segredo e não estilhaça um único pilar dentro da cabana do registo. Sondando imperativamente a fenda imposta de calibre 0 até ao extremo confim de 7, foca as suas atenções visando descobrir segredos binários esquecidos sob as carcaças enigmáticas dos bits dormentes nos redutos das ramificações isoladas. 
-A rasteira ardilosa a reter reside, todavia, nos reflexos ofuscantes das luzes processuais: se deparar perante um zero redondo, a máquina entoa vivamente a flag afirmativa e luzidia encarnada do Zeta (`Z=1`); descobrindo invés um orgulhoso e ativo um, ela abafa imperativamente os canais e precipita-se na ausência escura calando categoricamente o Zeta (`Z=0`). 
-
-Perante instintos primários de manipulação criadora de divindades erguem-se os pilares `SET [numero], registo` e `RES [numero], registo`. Sem pejo ou cerimónias vãs que adiam e condicionam saltos processuais nos emaranhados temporais limitados da arquitectura dos Zilog retro-retroativos, o colosso bélico afinca furiosamente sob a mnemónica afirmativa e empareda à martelada com a vitalidade elétríca pura um número isolado encravando doravante ali no cume o 1 intemporal perante a luz inalterada dos sete irmãos que os ladeiam inertemente em torpor e impavidez contígua no campo orgânico e biológico da mnemónica imbuída sob o `SET`. 
+O valor `n` chama-se **máscara**. Exemplos com atributos (tinta nos bits 0-2, papel nos bits 3-5, brilho no bit 6, *flash* no bit 7):
 
 ```assembly
-    bit 0, a          ; Ancoramos a sonda letal sobre o bater pulsante da artéria 0 do Herói...
-    jr nz, heroi_vivo ; Se as trevas esmorecerem e os faróis atestarem atividade num "1"! Salta!
-    
-    ; ... (Silêncio na cripta... a Morte apossou-se dos circuitos centrais em Z)
-    set 0, a          ; Sopro elétrico reanimador! Revivemos impetuosamente forçando de novo à raiz...
+    ld a,(hl)           ; atributo atual.
+    and %00000111       ; ficar só com a tinta (and 7).
+    ld a,(hl)
+    and %11111000       ; apagar a tinta, manter o resto.
+    or 2                ; e pôr tinta vermelha.
+    ld (hl),a
+    xor %10000000       ; trocar o flash (ligado <-> desligado).
 ```
 
-Uma advertência cínica proferida nos velhos pergaminhos relembra as novas paragens e incautos programadores: as ferramentas `SET` e o seu ceifeiro apagador `RES` denotam um aprumo incólume, mas transportam na bagagem um fardo excruciante no seio da letargia dos pesados motores dos relógios da CPU. Caso as operações requeiram embates e manobras concentradas nas esferas absolutas e magnas dominadas e contidas nos redutos sagrados do Acumulador `A`, será imensamente expedito arquitetar a máscara complexa com as ferramentas ancestrais sob o poder cego e desenfreado com esmaga e cega velocidade abismal através do trunfo elementar da operação singular cruzando o trilho dos tempos nas portas clássicas ancestrais e colossais forjadas no império com preceito através das antigas siglas lógicas absolutas.
+Três truques que aparecem em quase todos os programas:
+
+* `xor a` põe `A` a zero (1 byte, mais curto do que `ld a,0`) e limpa o *carry*.
+* `and a` e `or a` deixam `A` igual, atualizam a flag Z conforme `A` seja zero e limpam o *carry*.
+* As operações lógicas limpam sempre o *carry*. A flag P/V passa a indicar a paridade (número par de bits a 1).
+
+## Testar, Ligar e Desligar um Bit
+
+Para trabalhar com um só bit, sem máscaras, existem `bit`, `set` e `res`. Funcionam com qualquer registo de 8 bits, com `(hl)` e com `(ix+n)`/`(iy+n)`:
+
+```assembly
+    bit 0,a             ; testar o bit 0: Z = 1 se o bit estiver a 0.
+    jr nz,ligado        ; o bit está a 1.
+    set 7,(hl)          ; ligar o bit 7 do byte apontado por HL.
+    res 5,b             ; desligar o bit 5 de B.
+```
+
+Atenção à lógica de `bit`: a flag Z fica a 1 quando o bit é **0**. Ou seja, `jr z` salta se o bit estiver desligado e `jr nz` se estiver ligado.
+
+`set` e `res` sobre um registo levam 8 *T-states*, e `and`/`or` com um valor levam 7. Para mexer em vários bits do acumulador de uma só vez, uma máscara é mais rápida do que vários `set`/`res`.
+
+## Deslocamentos (Shifts)
+
+Os deslocamentos movem todos os bits uma posição. O bit que sai vai para a flag de *carry*:
+
+| Instrução | Efeito | Equivale a |
+| :--- | :--- | :--- |
+| `sla r` | todos os bits para a esquerda; entra 0 no bit 0 | multiplicar por 2 |
+| `srl r` | todos os bits para a direita; entra 0 no bit 7 | dividir por 2 (sem sinal) |
+| `sra r` | todos os bits para a direita; o bit 7 mantém-se | dividir por 2 (com sinal) |
+
+```assembly
+    ld a,5              ; %00000101
+    sla a               ; %00001010 = 10
+    sla a               ; %00010100 = 20
+    srl a               ; %00001010 = 10
+```
+
+Para multiplicar `A` por uma potência de 2 é ainda mais rápido usar `add a,a` (4 *T-states*, contra 8 de `sla a`). Para 16 bits, `add hl,hl` multiplica `HL` por 2.
+
+Combinando deslocamentos e somas, multiplica-se por outros números. Por exemplo, × 10 = × 8 + × 2:
+
+```assembly
+    ; A = A * 10 (para A até 25).
+    add a,a             ; × 2
+    ld b,a              ; guardar × 2.
+    add a,a             ; × 4
+    add a,a             ; × 8
+    add a,b             ; × 8 + × 2 = × 10
+```
+
+## Rotações
+
+As rotações são como os deslocamentos, mas o bit que sai volta a entrar pelo outro lado. Há duas famílias:
+
+* **Rotações de 8 bits** (`rlc`, `rrc`): o bit que sai entra do outro lado e é também copiado para o *carry*.
+* **Rotações de 9 bits** (`rl`, `rr`): o *carry* funciona como um nono bit. O bit que sai vai para o *carry*, e o valor antigo do *carry* entra do outro lado.
+
+| Instrução | Direção | Bits |
+| :--- | :--- | :--- |
+| `rlc r` / `rlca` | esquerda | 8 (bit 7 → bit 0 e carry) |
+| `rrc r` / `rrca` | direita | 8 (bit 0 → bit 7 e carry) |
+| `rl r` / `rla` | esquerda | 9 (carry → bit 0, bit 7 → carry) |
+| `rr r` / `rra` | direita | 9 (carry → bit 7, bit 0 → carry) |
+
+`rlca`, `rrca`, `rla` e `rra` só trabalham com o acumulador, mas ocupam 1 byte e levam 4 *T-states*, metade das versões gerais. Atenção: não alteram as flags Z e S.
+
+As rotações de 9 bits permitem deslocar números maiores do que um byte, passando o bit de um byte para o seguinte através do *carry*. Por exemplo, para deslocar 3 bytes de um *sprite* um píxel para a direita:
+
+```assembly
+    and a               ; carry = 0: entra um píxel apagado à esquerda.
+    rr c                ; byte da esquerda: o bit 0 sai para o carry...
+    rr d                ; ...e entra no bit 7 do byte do meio...
+    rr e                ; ...e daí para o byte da direita.
+```
+
+É assim que funcionam as rotinas de *sprites* do capítulo 8 da Parte 2.
+
+## Um Programa Completo
+
+Este programa mostra um byte em binário, rodando-o 8 vezes para o *carry*, e usa máscaras para separar a tinta e o papel de um atributo. Também converte uma palavra para maiúsculas apagando o bit 5 de cada letra.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+
+    ld a,%10110010      ; mostrar 178 em binário.
+    call binario
+
+    ld a,6*8+1+64       ; atributo: papel amarelo, tinta azul, brilho.
+    push af
+    and 7               ; só a tinta.
+    call binario        ; 00000001
+    pop af
+    and %00111000       ; só o papel...
+    rrca                ; ...deslocado para os bits 0-2.
+    rrca
+    rrca
+    call binario        ; 00000110
+
+    ld hl,palavra       ; converter para maiúsculas.
+    ld b,6
+maius:
+    res 5,(hl)          ; bit 5 a 0: minúscula -> maiúscula.
+    ld a,(hl)
+    rst 16
+    inc hl
+    djnz maius
+    ret
+
+    ; Mostrar A em binário (8 algarismos) e mudar de linha.
+binario:
+    ld b,8              ; 8 bits.
+binario0:
+    rlca                ; o bit 7 vai para o carry (e para o bit 0).
+    push af
+    ld a,'0'
+    jr nc,binario1      ; carry = 0: mostrar "0".
+    inc a               ; carry = 1: mostrar "1".
+binario1:
+    rst 16
+    pop af
+    djnz binario0
+    ld a,13             ; mudar de linha.
+    rst 16
+    ret
+
+palavra: defb "zxspec"
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_06_1.tap"
+        SAVETAP  "z80_06_1.tap",BASIC,"z80_06_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_06_1.tap",CODE,"z80_06_1",start,fim-start
+```
+
+O resultado é `10110010`, `00000001`, `00000110` e `ZXSPEC`. Como `rlca` roda os 8 bits em círculo, depois das 8 rotações `A` volta ao valor original.
+
+## Exercícios
+
+1. Escreva uma rotina que conte quantos bits de `A` estão a 1.
+2. Usando `xor`, faça um ciclo que alterne a cor da margem entre duas cores a cada fotograma.
+3. Escreva `A = A × 3` usando só `add` e `ld`.

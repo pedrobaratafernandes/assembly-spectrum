@@ -1,7 +1,7 @@
 # Escrever Jogos para o ZX Spectrum
 Guia em Português de Portugal (PT-PT) sobre como escrever jogos para o ZX Spectrum. 
 
-Este repositório contém os capítulos traduzidos estruturados em Markdown e configurados como um site de documentação estática gerado com o **MkDocs**. Além disso, todos os blocos de código Z80 Assembly foram adaptados para serem totalmente compatíveis com o compilador moderno **sjasmplus**, incluindo carregadores BASIC automáticos (`.tap`) e instantâneos (`.sna`).
+O livro tem duas partes: uma introdução ao assembly do Z80 e uma tradução adaptada de *How to Write ZX Spectrum Games*, de Jonathan Cauldwell. Está escrito em Markdown e é publicado como um site estático gerado com o **MkDocs**. Todos os programas completos compilam com o **sjasmplus** e geram um ficheiro `.tap` com carregador BASIC, pronto a abrir no emulador.
 
 A documentação online está publicada em:
 **[https://pedrobaratafernandes.github.io/assembly-spectrum/](https://pedrobaratafernandes.github.io/assembly-spectrum/)**
@@ -11,8 +11,17 @@ A documentação online está publicada em:
 ## Ferramentas Principais
 
 1. **sjasmplus**: Compilador cruzado (*cross-assembler*) moderno para o processador Z80, usado para compilar os códigos deste guia.
-2. **Fuse (Free Unix Spectrum Emulator)**: Emulador fiel do ZX Spectrum para testar os ficheiros gerados (`.tap` / `.sna`).
+2. **Fuse (Free Unix Spectrum Emulator)**: Emulador do ZX Spectrum para testar os ficheiros `.tap` gerados.
 3. **Ollama**: Servidor de modelos LLM local utilizado pelo Chatbot integrado na documentação para dar assistência em tempo real.
+
+---
+
+## Inteligência Artificial Utilizada
+
+Este livro foi escrito com o apoio de assistentes de inteligência artificial:
+
+* **Gemini** (Google)
+* **Claude** (Anthropic)
 
 ---
 
@@ -65,9 +74,10 @@ O site inclui um chatbot flutuante no canto inferior direito para ajudar com dú
 
 ## Como Compilar os Programas Z80
 
-Os exemplos de código máquina presentes nos capítulos estão prontos para compilar. Exemplo de compilação:
+Cada listagem completa do livro (as que começam com `DEVICE ZXSPECTRUM48`) é um programa independente. Copie-a para um ficheiro, por exemplo `exemplo.asm`, e compile:
 
 ```bash
-sjasmplus docs/codigo/capitulo1_exemplo.asm
+sjasmplus exemplo.asm
 ```
-Isto gerará automaticamente os ficheiros `.tap` e `.sna` prontos a arrastar para o emulador Fuse.
+
+O sjasmplus cria um ficheiro `.tap` com o nome indicado na diretiva `EMPTYTAP` da listagem. Abra-o no Fuse (*File → Open*) e o programa carrega e arranca sozinho. O capítulo [Preparar o Ambiente](docs/ferramentas.md) explica o molde dos programas e porque não se usam ficheiros `.sna`.

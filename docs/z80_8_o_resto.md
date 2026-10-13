@@ -1,55 +1,137 @@
-# As Sobras Mágicas do Z80: NOPs, BCD e Pesquisas
+# Outras Instruções Úteis
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Com este capítulo fechamos o ciclo de apresentação das instruções nativas de código máquina do modesto processador, focando-nos no sortido de comandos singulares que não encontram lugar cativo em categorias estritas, mas cujo domínio é inequivocamente vital para a sobrevivência arquitetural do programador.
+Este capítulo junta as instruções que não couberam nos anteriores: as que não fazem nada (ou esperam), o ajuste decimal, as de pesquisa em blocos e as de controlo das interrupções.
 
-## A Arte Literária de Fazer Nada
+## NOP e HALT
 
-Paradoxalmente, ocorrem momentos vitais no fluxo de um programa em que a melhor ação possível que a máquina pode perpetrar é suspender as lides, reter a respiração e aguardar sem corromper absolutamente nenhum registo. 
+`nop` não faz nada: ocupa 1 byte e gasta 4 *T-states*. Serve para pequenos atrasos de duração exata e para reservar espaço no código que vai ser alterado mais tarde.
 
-O célebre `NOP` (No Operation) encarna este conceito. Esta mnemónica é o comando vazio por excelência, estipulando que o processador não faça rigorosamente nada e, de modo sobranceiro, saia sem beliscar as luzes do seu painel de instrumentos ou o conteúdo de qualquer gaveta da memória. Aparentemente inútil, o seu valor manifesta-se através do tempo: embora seja cego, o `NOP` exige tempo de atenção a transitar nas condutas e esgota perentoriamente exatos 4 ciclos da pastilha (T-States), ou seja, impõe um desgaste mecânico da ordem de um microsegundo numa frequência de clock comum. A mestria dos antigos artesãos recorre frequentemente a alinhamentos maciços de NOPs para erigir compassos de atrasos calculados, calibrando rotinas à precisão do grão de milissegundo antes do acionamento de hardware sensível nas franjas da máquina. A sua outra virtude incontornável atua na limpeza de terreno. Numa selva de binários e código que despoleta ramificações de bytes inuteis numa substituição quente ou alteração relâmpago de software injetado, os buracos perigosos de falhas do programa podem e devem ser aplainados preenchendo o vazio da memória com bytes formatados no inofensivo tapete `NOP`.
-
-Numa vertente diametralmente abissal de suspensão encontra-se a instrução de `HALT` (Parar e Esperar). Mais que um atraso temporal, ela propõe uma pausa mecânica colossal. Assim que a topa, o processador mergulha numa hibernação gélida e suspende por tempo indeterminado o carreiro natural do ponteiro de instruções do vosso jogo, prestando unicamente ouvidos estáticos perante o vazio. O seu renascimento exige em uníssono uma faísca do mundo palpável cá fora da pastilha, isto é, perante um grito físico sonoro proveniente de hardware coligado a invocar Interrupções. No palco glorioso do Spectrum de molde caseiro, o televisor grita interrupções rigorosas acicatadas na fasquia de uma a cada quinquagésimo de segundo (o famoso Frame rate PAL de 50 Hz). A injeção ponderada do comando `HALT` alicerça assim a mestria dos programadores da era que esgotaram a arte de ataviar os seus motores gráficos com garantidos 50 "Frames per Second" cravados na rocha imutável, despindo-os dos vergonhosos soluços e garantindo as harmonias na dança do pincel visível sem hesitações de sincronia na TV de serviço.
-
-## A Conversão Numérica Pelo DAA
-
-A arquitetura originária da Zilog ostenta deficiências curiosas no que tange às operações base humanas, falhando com nota liminar ao ser destituída de fábrica do célebre "Decimal Mode", o formato de raciocínio natural de dezenas e centenas que agraciou colossos da época como o 6502 concorrente. Assim, este singelo processador só sabe processar matemática através da insensível grelha Hexadecimal de 16 bases. Numa operação natural quotidiana para transpor os pontos acumulados numa tabela de recordes de arcada de 1 a 10 e se for forçado a conjugar perante os seus terminais um vulgo `09 + 01`, a resposta seca que ressoa das entranhas devolve liminarmente os glifos impronunciáveis dum `0A`.
-
-Paliativo para a cegueira mecânica da era, materializou-se a mnemónica de correção mágica `DAA` (Decimal Adjust Accumulator). A referida engrenagem exótica traduz o que as nossas mentes anseiam, impondo conversões drásticas para forçar retroativamente a resposta fria à moldura acolhedora em Base 10 que nos define. Porém, ostenta diretivas rigorosas de proximidade: o processador carece e exige obrigatoriamente que a operação de auxílio via `DAA` submeta diretamente o cálculo matemático acoplada à própria ação original, ou seja, deverá perfilar invariavelmente estampada numa linha imediata decalcada após a soma ou desfalque recém-nascido.
+`halt` para o processador até chegar a próxima interrupção. No Spectrum, a ULA gera uma interrupção no início de cada fotograma, 50 vezes por segundo. Por isso `halt` é a forma mais simples de sincronizar um jogo com o ecrã e de fazer pausas:
 
 ```assembly
-    ld a, 0x09      ; Alojamento do nove nas raízes do nosso Acumulador
-    add a, 0x01     ; O incremento natural somado e devolvido à cega como '0x0A'
-    daa             ; O Manto Negro: resgatando a metade invisível secreta forçamo-la e o Acumulador coroa 0x10
+    ld b,50             ; 50 fotogramas = 1 segundo.
+pausa:
+    halt
+    djnz pausa
 ```
 
-Este resgate alquímico evoca as entranhas místicas subatómicas cruzando informações fantasmagóricas gravadas na enigmática luz de aviso `Half-Carry`, a luz apagada perante a transição secreta dos *nibbles* intradiários da qual nunca ouvimos sussurros nas rotinas profanas vulgares; com essa chave, o painel central transmuta a natureza crua em código Binary-Coded Decimal (BCD), convertendo a forma nativa do 0x10 que doravante resplandecerá à superfície de forma legível aos povos humanos pela impressão gloriosa das pontuações na tela matriz de forma inteligível do puro "10".
+Se as interrupções estiverem desligadas (`di`), `halt` nunca termina e o Spectrum fica parado.
 
-## Os Motores Internos de Pesquisa Pisteira
+## DAA e Números Decimais (BCD)
 
-Perscrutar o silêncio da noite numa planície imensa na incessante demanda do alvo oculto - seja a mera busca pelo caratere da letra "Z" que repousa perdido na escuridão num bloco textual encastrado duma floresta gigantesca contábil de 4000 caracteres de permeio num poema digital extenso -, evoca no seio das premissas vulgares a construção lenta e decrépita dum infame e deslustrado *Loop* manual. Um calvário excruciante balizado por testar e atestar incansavelmente cada byte sucessivo na via, decrementar o indexante de moradas longas de passo unitário e esticar o elástico perante saltos infindáveis repetitivos que afogam em marés demoradas o caudal do fluído natural que move e que pauta a beleza veloz. O esgotamento seria trágico se não repousasse embebido nas pedras do silício os Motores Internos de Busca Direta automatizados e nativos pela engenharia sublime.
+Em BCD (*Binary Coded Decimal*) cada byte guarda dois algarismos decimais, um em cada metade de 4 bits: o número 45 guarda-se como `$45`. É útil para pontuações, porque cada algarismo se mostra diretamente, sem divisões.
 
-Tratados sob as siglas uníssonas de `CPIR` (Compare, Increment, Repeat) que desenfreadamente avança num esquadrinhamento voraz para diante ou os retroativos e cautelares sob a pauta do irmão retroativo de varrimento inverso para trás do `CPDR` (Compare, Decrement, Repeat).
-
-A ignição das turbinas obriga imperativamente às congregações estritas duma plêiade de triplas grandezas fundamentais: A base estruturada da matriz arranca a busca focada a partir da batuta exata ditada pela longa morada fixada previamente no indexante natural `HL`; a corda amarrada aos baluartes com extensão em contagem final do abismo dita pelas capacidades magnas do suporte dimensional da variável alocada no limite balizador e insubstituível dos estribos no `BC`; terminando na natureza pura da centelha volátil perfumada de isco ditada inexoravelmente pelo elemento primário vertido em `A` revelando destemido o rasto cobiçado que encabeçará a missão de buscas e atirará sem piedade os motores da perseguição ininterrupta da fera mecânica ao rubro infernal do avanço perante os pântanos de lamas.
-
-O processador comporta-se indubitavelmente neste transe sob a égide inquestionável dum infalível Cão Pisteiro. Lançada a coleira à origem de rastreio ditada pelo `HL`, segurada com estoicismo e precisão inegociável na trela da fita métrica ditada limitadamente até que a dita restrição dos blocos máximos exatos colapsem esboroando extenuados perante o `BC` no estanque de limites, instiga furiosamente perante a prova olfativa irredutível cravada exata e rigorosa no byte central transigido no recluso regozijo instilado num alvo volátil transigido abrigado de origem recôndito em prol na moldura do Acumulador de alvo e escorropicha e atiça correndo autonomamente nas veias silenciosas.
+O Z80 soma em binário, por isso `$09 + $01` dá `$0A`, que não é um número BCD válido. A instrução `daa` (*Decimal Adjust Accumulator*), executada logo a seguir a uma soma ou subtração, corrige o resultado para BCD: transforma `$0A` em `$10`. Para isso usa as flags H e N da operação anterior, e por isso tem de vir imediatamente depois dela.
 
 ```assembly
-    ld hl, 0x8000   ; O faro lançado na morada original oitenta e tal cravada ao pórti...
-    ld bc, 1000     ; Limitada fisicamente no jugo amarrada eximiamente ao teto extenuante 1000..
-    ld a, 0x00      ; Farejando e instilando implacavelmente cega atrás das raízes perdidas do Zero / NOP
-    
-    cpir            ; E desfeita a couraça o motor arranca na caçada invisível e infalível pelo interior a fora!
-    
-    dec hl          ; Interceção brutal recuando os ponteiros exaustos em cima do embate do encalço letal!
+    ld a,$09
+    add a,$01           ; A = $0A (binário)
+    daa                 ; A = $10 (BCD: "10")
 ```
 
-Importa reter uma perigosa armadilha perante caçadas furiosas sob o leito estanque da via dos Z80 limitados. Arrastado veloz e inexoravelmente na procura imparável da morada cobiçada do rasto fatal o avanço frenético embutido revela sempre incontroláveis pântanos mecânicos no abrandamento físico inerte que resvala sempre inegociável o travão em falso passando indubitavelmente derrapando num embate exato perante mais de um quadrado extra num trambolhão excedente inquestionável na colisão com as presas vitais de alvo capturado. Pelo decurso transato, o apontador final inóspito abandonado no esgoto dos caminhos remete invariavelmente não à pedra basal da carcaça do alvo ditado mas colide com rigor e sem remendos espancado um passo infalível exato além fronteiras roçando o leito na vizinha extremidade da porta à ilharga em `HL+1`. A retoma aos destroços intatos exige invariavelmente um resgate compassivo retroativo em regresso unitário por imperiosa necessidade estrita imposta dum cirúrgico regresso à glória da estocada por rescaldo via reverso manual singelo recambiando num revés absoluto ao repouso sagrado original pela alçada dum elementar resgate cravado em `DEC HL`.
+Para números com mais de dois algarismos, somam-se os bytes do menos significativo para o mais significativo, com `adc` e `daa` em cada um. O *carry* produzido pelo `daa` passa para o byte seguinte.
 
-## O Sistema Nervoso Automático
+## Pesquisar em Blocos: CPIR e CPDR
 
-Encerrando as franjas imperiosas deste rol recôndito a chave matricial dita inexpugnável nos confins abismais o trilho insidioso abissal focado nas balizas colossais assentes e acicatadas nos intercetores mecânicos encabeçados nas famosas Interrupções de via aberta dos limites e sistemas nervosos automáticos a atarraxar incólumes nos Zilog.
+`cpir` procura o valor que está em `A` num bloco de memória: começa no endereço em `HL`, examina no máximo `BC` bytes e para quando encontra o valor ou quando `BC` chega a 0. `cpdr` faz o mesmo, mas a andar para trás.
 
-Por `EI` (Enable Interrupts) ditamos de bom grado à porta aberta franca dos céus abrindo escancaradamente o flanco perante a recetividade incontornável dos alertas imperiosos a assolar os muros erigidos. Neste prado a TV ou o pulsar vibracional frenético das matrizes periféricas apitam em silvos perfeitamente integrados com as premissas embutidas perante os ciclos em vigência das pausas. Em contrapartida as portas aferrolhadas sob a impiedade duma muralha cega a selar por um bloqueio inabalável traduzido singularmente na invocação severa à surdez mecânica inaudita dum lacónico `DI` (Disable Interrupts) confina no vazio toda e qualquer apelo intrusivo desterrando e vetando qualquer grito forasteiro externo à rotina imiscuída. Abençoado pilar intransponível e fundamental que veta as interferências ruidosas quando se abraça intimamente sem receios matemáticas cegas ou cadências precisas que definem exaustivamente e rogam os ciclos síncronos imaculados da máquina intocada para o infinito sucesso perante ecrãs estáticos incólumes imperiosos em pureza temporal cega ininterrupta limpa.
+No fim:
 
-Adicionalmente aos lacres e portões de aberturas de interrupções impõem a máquina balizar de vez e orquestrar de facto a índole exata do porte operatório ao embate em acoplamento central da dita cadência exata nas mnemónicas colossais do Interrupt Mode através do `IM` assentes por estrito dogma e ditames mecânicos colossais numa das três vias. Do infértil nulo vazio relegado a inexistências crónicas de uso estático nas encarnações inóspitas na casa das máquinas originais das placas matriz (Modo 0) resvalamos ao reino uníssonos pacífico perfeitamente síncrono da dita baliza nativa natural reinante nos ditos pastos de casa em todos os colossos de 48K por nós idolatrados. Ao ser cimentada a opção pelo normal do Modo 1 a televisão varre graciosamente as tranches das linhas escuras perante um vislumbre fugaz a estalar em salto contínuo rumo inquestionável aos albergues contidos intocáveis enraizados e fechados à sete chaves encastrados permanentemente numa abóbada residente na mítica glória perante a rotina fechada nos domínios da ROM gravados inalteravelmente no limite fixado de alocação absoluta central nas memórias exatas no local de zero trinta e oito cravado fixo assinado. A última muralha colossal do Modo Caótico imposta sob os confins absolutos libertadores desbravada livremente pelas águas imensas e criadoras e anárquicas do pilar central duma ditadura absolutista regida ditada e cunhada à nascença no seio singular da gloriosa alocação de endereços vetoriais independentes nas fronteiras assentes e recriadas autonomamente pelo leque das tabelas forjadas a aço no cume dos horizontes impulsionados do célebre e intrépido `IM 2`, que o leitor cruzará nos embates da engenharia futura aquando das vias do esoterismo criacional puro absoluto que ornarão este manuscrito das fundações mecânicas da lenda.
+* se encontrou, a flag Z fica a 1 e `HL` aponta para o byte **a seguir** ao encontrado (daí o `dec hl`);
+* se não encontrou, a flag Z fica a 0 e `BC` = 0.
+
+```assembly
+    ld hl,texto         ; onde procurar.
+    ld bc,100           ; quantos bytes, no máximo.
+    ld a,'Z'            ; o que procurar.
+    cpir
+    jr nz,nao_ha        ; Z = 0: não encontrou.
+    dec hl              ; HL aponta para o "Z" encontrado.
+```
+
+Também existem `cpi` e `cpd`, que fazem uma só comparação.
+
+## Interrupções: DI, EI e IM
+
+* `di` desliga as interrupções e `ei` volta a ligá-las. Desligam-se quando o programa não pode ser interrompido: a mexer no `SP`, a gerar som ou a fazer temporizações exatas.
+* `im 0`, `im 1` e `im 2` escolhem o **modo de interrupção**. O Spectrum arranca em modo 1, em que cada interrupção chama a rotina da ROM no endereço 56 (`$38`): é ela que lê o teclado e atualiza o relógio `FRAMES`. O modo 2 permite usar uma rotina nossa (capítulo 11). O modo 0 não tem utilidade no Spectrum.
+
+## Um Programa Completo
+
+Este programa conta de 0 a 99 em BCD, mostrando os dois algarismos de cada número sem nenhuma divisão, e depois usa `cpir` para encontrar a posição da letra "Z" num texto.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+
+    xor a               ; contador BCD a 0.
+    ld b,100            ; 100 números.
+conta:
+    push af
+    push bc
+    call mostra_bcd
+    ld a,' '
+    rst 16
+    pop bc
+    pop af
+    add a,1             ; somar 1...
+    daa                 ; ...e corrigir para BCD.
+    djnz conta
+    ld a,13
+    rst 16
+
+    ld hl,texto         ; procurar "Z" no texto.
+    ld bc,fimtexto-texto
+    ld a,'Z'
+    cpir
+    jr nz,nao_ha        ; não encontrou.
+    dec hl              ; HL aponta para o "Z".
+    ld de,texto
+    and a
+    sbc hl,de           ; HL = posição dentro do texto.
+    ld b,h
+    ld c,l
+    call 6683           ; mostrar a posição.
+nao_ha:
+    ret
+
+    ; Mostrar os dois algarismos BCD de A.
+mostra_bcd:
+    push af
+    rrca                ; algarismo das dezenas: 4 bits de cima.
+    rrca
+    rrca
+    rrca
+    and 15
+    add a,'0'
+    rst 16
+    pop af
+    and 15              ; algarismo das unidades: 4 bits de baixo.
+    add a,'0'
+    rst 16
+    ret
+
+texto:  defb "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+fimtexto:
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_08_1.tap"
+        SAVETAP  "z80_08_1.tap",BASIC,"z80_08_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_08_1.tap",CODE,"z80_08_1",start,fim-start
+```
+
+O programa mostra `00 01 02 … 99` e, por fim, `25`: o "Z" é o 26.º carácter, na posição 25 a contar de 0.
+
+## Exercícios
+
+1. Mude o contador para contar de 99 até 0 com `sub 1` e `daa`.
+2. Escreva uma rotina que some uma pontuação BCD de 3 bytes (6 algarismos) a outra.
+3. Use `cpir` para contar quantas vezes a letra "A" aparece num texto.

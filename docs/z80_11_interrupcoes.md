@@ -1,65 +1,139 @@
-# O Coração do Jogo: O Domínio do Tempo (Interrupções Z80)
+# Interrupções
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. A jornada encaminha-se finalmente para o altar sagrado dos criadores de arcada: os segredos nevrálgicos de orquestrar a fluidez, ditar a sincronia exata temporal da nossa tela perante a cadência impiedosa do pincel dum velho televisor e varrer em definitivo para as masmorras do passado a agonia nauseante das imagens lacrimejantes e rasgadas. 
+Uma interrupção é um sinal elétrico que faz o processador parar o que está a fazer, executar uma rotina e depois continuar onde estava. No Spectrum, as interrupções marcam o ritmo de tudo: é com elas que a ROM lê o teclado, que o relógio avança e que os jogos se sincronizam com o ecrã.
 
-## Os Alarmes da Máquina
+## Os Dois Tipos de Interrupção
 
-Num paralelismo humano vulgar ancorado nas vicissitudes mundanas, carecemos fisicamente de rudes campainhas estridentes em despertadores matinais para abanar o transe do sono e impulsionar a transição focada aos deveres do labor. No limiar da eletrónica a base do Z80 comunga estritamente desta arquitetura fisiológica através de dois pinos físicos que emitem e ativam abanões de choque puramente elétrico no hardware: a imposição é forçar que o miolo deixe cair toda a panóplia do que processava nas suas amálgamas cegas e reencaminhe instantaneamente o voo rasante a rotinas de emergência para resgatar missões vitais de tempo ou salvação da vida contábil da arquitetura.
+O Z80 tem duas entradas de interrupção:
 
-No pináculo irredutível da ditadura destas invocações encastela-se a mítica `NMI` (Non-Maskable Interrupt). Assume-se em absoluto no patamar superior de emergência extrema; uma ordem intransigente que não pode jamais ser ignorada nos corredores, mascarada por lógicas, silenciada pela inércia dos canais ou caprichosamente adiada por manobras avulsas. Relevante observar nas entranhas que ditaram a conceção fechada dum ZX Spectrum originário que o abismo se fez luz, não se atrelando propositadamente um único fôlego interno à corda do `NMI`. Este pino sobrevive isolado aguardando unicamente a tirania cega atirada pelos domínios das expansões apostas nos encaixes periféricos traseiros externos ao invólucro do plástico, permitindo as famigeradas interfaces com o dom milagroso que ditavam o congelar absoluto e irrestrito da ação de embate em qualquer jogo pela vontade de atiradores furtivos alheios à sua raiz.
+* **NMI** (*Non-Maskable Interrupt*): não pode ser desligada e salta sempre para o endereço 102 (`$66`). No Spectrum não é usada pelo próprio computador, só por alguns periféricos ligados atrás (as interfaces que "congelavam" os jogos para os gravar).
+* **INT** (*Maskable Interrupt*): pode ser desligada com `di` e ligada com `ei`. No Spectrum, a ULA gera uma INT no início de cada fotograma, 50 vezes por segundo (60 nos modelos americanos).
 
-O trâmite vulgo processual impõe a coroa contudo perante o altar contíguo do operário batizado `INT` (Maskable Interrupt). Este condutor atende as massas encarnando a essência base das interrupções de hardware comuns. Contrasta categoricamente perante o seu irmão absoluto encarnando de feição cega na capacidade imperativa de "mascaramento" - ou seja, tolera a submissão e o silenciar coercivo ordenado sub-repticiamente pela vontade embutida no comando processual de surdez via `DI` (Disable Interrupts). Para além desta trégua temporária, o milagre da conceção do Spectrum amarra esta corda de tensão a um único cabo elétrico contíguo alojado internamente dentro da couraça ditando obediência sem paralelo sob um ditame soberano: a tutela recai intransigente estritamente cravada e ancorada nos pilares do maestro da Placa de Vídeo (o ULA).
+Quando aceita uma INT, o Z80 desliga as interrupções (para não ser interrompido outra vez a meio), guarda o endereço atual na pilha (como um `call`) e salta para a rotina de serviço. A rotina termina com `ei` (para voltar a aceitar interrupções) e `reti` (para voltar ao programa).
 
-A referida tutela desvela perante o ecrã catódico o milagre e janela áurea vulgo afamada nas margens britânicas de Vertical Blanking Period.
-O artífice ditado de origem balizado na ULA esgota e arrasta perante o televisor varrimentos exaustivos da imagem impelindo cadências e embates ritmados ao rigor ditado no sinal europeu de PAL ancorados nos exatos 50 Hertz (50 imagens projetadas puras por cada segundo da vida terrena). A consequência crua deste labor é a consagração absoluta dum lapso temporal onde exatos a cada vincados 20 milissegundos o quadro de pintura da imagem embate exausto nos limites base da moldura impulsionando perante si com pujança as molas e levanta exultante o trunfo elétrico encabeçado no pino isolado associado à `INT` encarregue de gritar cravado na espinha nevrálgica central da artéria no Z80: "O quadro desta frame colapsou! Arrebato perante a ordem a suspensão impiedosa no feixe luminoso que cospe os eletrões encastrados de emissão catódica da TV por uns míseros e cegos oásis encurtados de meio milissegundo apenas! Para impulsionar pelo trambolhão do retrocesso magnético reencaminhar cegamente na base cimeira varrendo do topo absoluto para estampar novo decurso no recomeço liminar!"
-E ressurge para as engrenagens criacionais puras o cálice divinal transubstanciado num punhado cego ancorado num oásis limitativo temporal de exatos parcos e gloriosos 512 microsegundos absolutos varridos sem cor de tela: a oportunidade irrecusável perante os operários artífices de manusear nos bastidores das memórias da RAM e pintar às escondidas na dita cortina tapada todo o grafismo cravado alterando cenários exatos no quadro oculto fugindo impoluto sem remorsos dos olhares escrutinadores perante a ausência luminosa. Ninguém pressentirá o sujar dos pincéis em embates com as matrizes transfiguradas duma cadência ritmada.
+## A Interrupção e o Ecrã
 
-## Modos Operativos na Gestão do Embate
+A ULA desenha o ecrã de cima para baixo, linha a linha, sempre ao mesmo ritmo. A interrupção chega quando começa um novo fotograma, no topo da margem de cima. Num Spectrum 48K, cada linha leva 224 *T-states* e há 64 linhas de margem antes da primeira linha da área de papel: cerca de 14 000 *T-states* em que nada do ecrã principal está a ser desenhado.
 
-Transpondo os meandros cravados na arquitetura processual a pastilha base Z80 ostenta na gaveta três redutos distintos onde orla invariavelmente perante o ditame avassalador que balizou a rotina dos "choques" na premissa elementar da `INT`:
+É por isso que os jogos fazem `halt` (esperar pela interrupção) antes de apagar e redesenhar os *sprites*: se o fizerem logo a seguir, acabam antes de o "pincel" da televisão chegar à zona onde estão, e não há cintilação (*flicker*). E como `halt` espera sempre pelo próximo fotograma, um ciclo principal com um `halt` corre no máximo a 50 voltas por segundo, um ritmo constante e independente da velocidade do código (desde que este caiba num fotograma).
 
-O primeiro alicerce impulsionador que embala as tramas encosta tacitamente submisso e amarrado aos portões de feição e arranque inicial ditados de fábrica na máquina inglesa sob a sigla Mode 1 (`IM 1`). Corresponde no desígnio exato no abismo à preguiça mecânica. Acicatada a corda no despontar elétríco acoplado ritmado do VBlank da imagem o maquinista amarra os estribos abandona em cauda as tranches vitais relegando caótico a linha matriz central forçando ditatorial num atalho obrigatório saltando cegamente numa bala ancorada perante as rotinas base ditas na ROM balizada nas muralhas da morada inquebrantável das matrizes do logradouro `0x0038`. Este ninho evoca com estrita fidelidade impulsionadora nas ramificações cruzadas invocando perante as fundações as rotinas famosas e inquebrantáveis encarregues de ler e destilar em letargia o Teclado perante cadências infindáveis que embalam adormecidas a atualização crónica estrita cravada no relógio matriz da dita RAM contígua do sistema.
+## Modos de Interrupção
 
-No reduto adverso acampa o portento focado assente nos preceitos de rotina cirúrgica das fundações e artililharia pesada das obras puras alheias cravada sob Mode 2 (`IM 2`). Um reino estrito forjado pelos peritos absolutos. Este pórtico impõe sem pudor perante as malhas absolutas estripadas do núcleo processual Z80 um largar imediato da ação perante os apelos sonantes mas subverte as origens catapultando as moradas em trânsitos avassaladores e arremessando-o cegamente perante redutos de código inteiramente escritos no seio originário nas mãos puras num artífice contíguo enclausurado livre nas pastilhas da memória RAM inalterada! Ataviar sprites ao som orgânico cravado ritmado perante as frequências imperativas na batuta duma televisão orla as cadências imbuídas que forçam este exato trâmite ancorado à mestria.
+A instrução `im` escolhe o que o Z80 faz quando aceita uma INT:
 
-## O Truque Negro da Tabela de Saltos
+| Modo | Comportamento | No Spectrum |
+| :--- | :--- | :--- |
+| `im 0` | Executa a instrução que o periférico põe no barramento. | Sem utilidade. |
+| `im 1` | Faz sempre `rst 56`: salta para o endereço 56 (`$38`). | O modo normal. A rotina da ROM em 56 lê o teclado e atualiza `FRAMES`. |
+| `im 2` | Salta para um endereço lido de uma tabela apontada pelo registo `I`. | Permite usar uma rotina nossa. |
 
-O fardo que destoa a orla e estilhaça a elegância conceptual da arquitetura de engates enlaçados encastrados no circuito da conceção inicial no velho ZX Spectrum embate com estrondo na deficiência mecânica. No limiar duma imposição imperiosa ao reduto focado na base do Mode 2 reclamando os baluartes temporais cravados em matriz para decifrar numa premissa cega a morada contígua assente nos voos para ressaltar em voos cruzados à rotina programática do artífice da RAM, a lógica estripa a decantação duma premissa assente recolhendo por encarte uma morada de dois blocos na extensão fixando nos estribos por ordem do seu encarte principal da prateleira na secção do Registo restrito `I` a face da moeda balizando apenas na cimeira a metade cimeira exata cravada fixamente em byte absoluto num estanque focado alto, relegando tragicamente na encruzilhada por obrigatoriedade delegando invariavelmente perante o emissor escravo impulsionador periférico na base operadora vizinha responsável na dita ULA que dita e cospe o grito cravado a injetar dita fatia omissa relegando à máquina o restrito byte da banda baixa! Acontece pela trágica sina ditada em ironia que a placa das maravilhas contíguas britânica nas linhas ULA revela surdez fatal cega caindo em falência abissal destituída do engenho isolado perante este ditame descarregando por corolário o atirar aleatório sujo recheado do puro "Lixo Elétrico Aleatório" atirando por descargo descuidado na matriz no dito percurso e vala restrita contígua aos pinos de dados cravando a esmo um remanescente vazio ditado caótico perante condutas num pântano sujo!
+### Como funciona o modo 2
 
-A baliza fatídica colhe e colapsa remetendo um saldo imprevisível esboroando as garantias num pântano sujo atirando a morada do voo livre transigindo a uma falência caótica e inaudita assente no estilhaço dum espaço abissal estendido exaustivo duma grelha cega confinada à dimensão inteira transbordando limites cravados entre duzentos e cinquenta e seis bytes soltos num rolo aleatório impuro assente no esgoto. 
-O engenho audaz submeteu e domesticou a máquina cimentando uma lenda de contornos sombrios: afogando liminarmente sob as calhas contíguas varridas no espaço maciço alocado à orla da RAM preenchendo a integralidade do teto duma vasta premissa duma página confinada base englobada desde as margens impulsionadas assinaladas base no `0xFE00` roçando os horizontes do balizador extremo focado encabeçante duma fronteira `0xFF00` derramando imperiosamente a mancha suja ditando em réplicas fixas inabaláveis reencarnadas a cada fenda perante a exata colagem de duzentas e cinquenta e sete vezes reiterando o lixo infértil num molde maciço impoluto num célebre carimbo balizado impiedosamente cravado em `0xFD`!
+Em modo 2, o Z80 forma um endereço de 16 bits com o registo `I` no byte alto e o valor que encontra no barramento de dados no byte baixo. Lê nesse endereço um ponteiro de 2 bytes e salta para onde ele aponta.
 
-O fluxo operatório encerra nas tramas premissas estritas na orquestração:
-Primeiramente o arremesso estrito das fronteiras dita na orla cimeira atirada ao engate ditando na prateleira dita o pólo alojando em matriz assinalada pela chave cravada a `0xFE` alocada sem apelo às prisões da enclausurada matriz focado num estrito balizador restrito cravado estanque no Registo essencial mestre do `I`.
-Subsequentemente acoplada e moldada numa mancha cega e de arremesso linear forçoso a colagem abrutalhada inundando duma vala inquebrável empurrada encostada aos trâmites colados ditos de margem do `0xFE00` face extrema cravada transigindo os tetos abismais varridos aos contornos do `0xFF00` recheada estritamente inundada e sufocada pela ditadura exaustiva singular perante os blocos com lixo cravados exaustivamente afogados por sucessivos clones do valor em espelho absoluto balizado intocável de base `0xFD`.
-Pela pureza incólume contígua de tal alicerce imperturbável cai no inútil obsoleto e cego qualquer poeira caótica ou faíscas sujas de matriz corrompida oriundas nas lamas abismais expelidas caoticamente nas faíscas pelo cuspidor das entranhas matriz do hardware ULA desdobrada desde o zero puro às fronteiras extenuantes limite do `FF`! A trituradora exata foca-se indiferente acoplando as pontes numa argamassa balizada imponente enfiando a garra cruzada à procura decalcada atirando nos dois bytes encastrados exaustivamente duma gaveta cega atirada a uma linha contígua estanque cravada no interior confinado restrito à matriz moldada de base da referida mancha: como nas tramas imperativas só repousa intocável ali deitado o valor estanque de base do lixo embutido, transigirá infalível transmutando invariavelmente sem exceção perante engates a construção e molde imperativo dum assomo e salto de amarra forçoso rumo à derradeira e exata margem unívoca impoluta ancorada invariavelmente por exatidão linear aos trilhos focados e fundidos numa muralha ditando eternamente: morada absoluta restrita do encargo em destrinçar base na rocha de origem ditado contíguo `0xFDFD`!
-Coroando o encargo supremo perante um quadro inalterável à mercê do estrito engenho humano transige unicamente coligir por final a amálgama da ação cravando sem misericórdia e sem espinhos balizados a agulha na veia encravada do foso morada afunilada de escape estático base em `0xFDFD` ditando ao império e silício as matrizes absolutas do salto imperativo em linha restrita focada apontada linear na raiz cravada às entranhas orgânicas nativas dum ninho alojando puro o código e vida e alma exata focada isolada que embala os contornos nativos de fundação no âmago principal batizado e embalado nas fundações do coração base exata no desígnio rotinal motor operatório motor operando na obra principal encabeçada do Jogo contíguo restrito puro final originário e cravado num regresso ao seio estanque matriz focado exato da nossa rotina principal!
+O problema é que, no Spectrum, nenhum periférico põe um valor definido no barramento: o byte baixo é normalmente 255, mas pode ser qualquer um. A solução clássica é:
+
+1. Reservar uma tabela de **257 bytes**, todos com o mesmo valor `v`, a começar num endereço múltiplo de 256 (`I` × 256). Seja qual for o byte baixo, o ponteiro lido tem os dois bytes iguais a `v`: aponta para `v × 256 + v`.
+2. Pôr nesse endereço a rotina de interrupção, ou um `jp` para ela.
+
+Uma escolha comum é a tabela em `$FE00` (65024) cheia de `$FD`, e a rotina em `$FDFD` (65021). Assim tudo fica no topo da memória, longe do programa. O capítulo 17 da Parte 2 mostra a mesma técnica com outros endereços.
+
+A tabela e a rotina devem ficar acima de 32768. Abaixo desse endereço, a ULA disputa a memória com o processador, e com o registo `I` entre `$40` e `$7F` o Spectrum 48K mostra um efeito de "neve" no ecrã e pode mesmo bloquear.
+
+### A rotina de serviço
+
+* Tem de guardar e repor **todos** os registos que altera (`push`/`pop`), porque pode interromper o programa em qualquer instrução.
+* Pode chamar `rst 56` para a ROM continuar a ler o teclado e a atualizar `FRAMES` (desde que `IY` tenha o valor do BASIC, 23610).
+* Termina com `ei` e `reti`.
+* Deve ser curta: enquanto corre, o programa principal está parado.
+
+## Um Programa Completo
+
+Este programa instala uma rotina de interrupção em modo 2 com a tabela em `$FE00` e o salto em `$FDFD`. A rotina conta os fotogramas; o programa principal mostra os segundos que passaram, de 0 a 5, e depois repõe o modo 1 e volta ao BASIC.
 
 ```assembly
-  di              ; Interceção brutal castrando apelos nas muralhas para extirpar ruídos e encetar purgas cegas cirúrgicas ininterruptas da grelha intocável.
-  ld hl, 0xFE00   ; O pilar primordial do cimento. O assentamento matricial inicial perante o rolo.
-  ld a, 0xFE      ; Extrai a base essencial focada na cabeça vital...
-  ld i, a         ; Fixa a fronteira de encabeçamento intransigente na prisão matriz alojada intocável no trono absoluto.
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    di                  ; preparar tudo sem interrupções.
+    ld hl,$FE00         ; tabela de 257 bytes em $FE00...
+    ld (hl),$FD         ; ...cheia de $FD.
+    ld de,$FE01
+    ld bc,256
+    ldir
+    ld a,$C3            ; em $FDFD, a instrução "jp int".
+    ld ($FDFD),a
+    ld hl,int
+    ld ($FDFE),hl
+    ld a,$FE            ; I = byte alto da tabela.
+    ld i,a
+    im 2
+    ei
 
-; Num rito estrito a calha derrama varrendo incólume cravado transigindo em LDIR amarra cega os estribos impiedosamente e submerge atirando sem descanso as vagas de poeira 0xFD 257 ciclos ditando encravados preenchimento puro em afundamento base nas fronteiras base ditas!
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+    xor a
+    ld (segs),a
+mostra:
+    ld a,22             ; AT 10,10.
+    rst 16
+    ld a,10
+    rst 16
+    ld a,10
+    rst 16
+    ld a,(segs)
+    add a,'0'           ; mostrar os segundos (0 a 5).
+    rst 16
+espera:
+    halt                ; esperar pelo próximo fotograma.
+    ld a,(conta)
+    cp 50               ; já passaram 50 fotogramas?
+    jr c,espera
+    xor a               ; sim: recomeçar a contar
+    ld (conta),a
+    ld hl,segs          ; e somar um segundo.
+    inc (hl)
+    ld a,(hl)
+    cp 6                ; chegou aos 6?
+    jr nz,mostra
 
-  ld hl, 0xFDFD   ; A rocha derradeira inquebrável, destino abissal forjado perante colapsos lixo esgotado amansado.
-  ld (hl), 0xC3   ; Martela exata o carimbo imperioso exato sem remorsos cravado a fogo no salto absoluto irremediável em puro JP intocável.
-  inc hl
-  ld de, O_MEU_JOGO_ROUTINE ; O leme cravado na rota da nossa obra de salvação!
-  ld (hl), e      ; Encerra cravando na matriz base exata focando base baixa no leito.
-  inc hl
-  ld (hl), d      ; Crava exímio e liminar contíguo encerramento balizado rematando a fatia focado originária topo alta exata!
+    di                  ; repor o modo normal antes de sair.
+    ld a,63             ; valor normal de I no Spectrum.
+    ld i,a
+    im 1
+    ei
+    ret
 
-  im 2            ; Renasce com estrondo invocando na libertação matriz a batuta caótica solta no palco.
-  ei              ; Devolve aos céus clamores rasgando no éter as correntes vitais devolvendo luz e voz operatória cruzada de emergências e ditames vitais de alertas!
+    ; Rotina de serviço de interrupção.
+int:
+    push af
+    push hl
+    ld hl,conta
+    inc (hl)            ; mais um fotograma.
+    rst 56              ; deixar a ROM ler o teclado e o relógio.
+    pop hl
+    pop af
+    ei
+    reti
+
+conta:  defb 0          ; fotogramas desde o último segundo.
+segs:   defb 0          ; segundos.
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_11_1.tap"
+        SAVETAP  "z80_11_1.tap",BASIC,"z80_11_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_11_1.tap",CODE,"z80_11_1",start,fim-start
 ```
 
-## O Ciclo Primordial da Arcada Perfeita 
+Repare que o programa principal só lê e altera `conta` entre dois `halt`, logo a seguir a uma interrupção, por isso não há perigo de a rotina de interrupção a alterar ao mesmo tempo.
 
-Exigindo exatidão na metáfora encravada, perante a indigência amadora num rascunho obsoleto mal delineado - patente nas criações arcaicas e lentas nos primórdios no berço rústico cravado nas matrizes amadoras alojadas e escritas no dialecto basilar BASIC - o expectador colhe nos olhos atónitos flagelos infames transfigurados com a alcunha inglória de "Screen Tearing" e abanões agónicos a rasgar em espasmos de píxeis fragmentados no vislumbre cadente na tela das emissões televisivas perante a brutalidade linear duma reescrita arrastada a um estiramento intolerável moroso processual à vista crua espetada num abismo exposto impiedoso ao transeunte espetador incólume à cega matriz nua no ecrã e à lufada da luz em eclosão visível estripada. A erradicação ditada no preceito inquebrável do trâmite da fluidez cravada estanque imposta nos jogos gloriosos repousa intocável ancorada na interrupção cega duma partilha operatória esquizofrénica encabeçada unicamente nos bastidores perante os dogmas exatos cravados perante os dois hemisférios independentes exatos estipulados e alcunhados vulgarmente ditos em esqueleto nativo dum dono apressado em embate restrito cego de fúria cruzado sub-reptício num operário exímio laborando na calada morta de escuros fantasmas em turnos e turnos síncronos numa dança letal de sombras.
+## Exercícios
 
-Ao hemisfério cerebral principal de mestre de obra cabe encetar os cálculos estafantes do embate físico matemático no terreno. A perscrutação avassaladora encarrega de embates ditados pela letargia imposta ao hardware encabeçando exibições extenuantes ditas nos escrutínios exatos nos embates de Joystick colhidos cirurgicamente duma entrada em matrizes focadas via portos de leitura imperiosos em varrimentos contínuos por `IN`, bem como decifrar sem pausas as matrizes de rescaldo de valores na estaca contígua da tábua das pontuações cravadas a fogo de vidas contáveis estritamente purgadas num ecrã limpo a raso estanque originário e na alocação volátil perante orlas espaciais balizadas recriando num plano dimensional cravado estático cruzando fintas vetoriais no estique perante eixos estáticos para colidir vetores em transe. Contudo a glória imaculada assenta num veto imperioso; não espeta nem martela sem apelo nas frentes cruzadas intocáveis perante o palco do anfiteatro matriz perante espetadores albergado encastrado visível encabeçado perante o berço originário encabeçado exato nas calhas contíguas em estrita restrição ao cume da parede principal e cume ditado ancorado visual à lousa estanque dita fixa `0x4000` base contígua da Placa Matriz Video, forjando perante a negação exata a criação cega incólume recheada duma tapeçaria oculta cravada duma caligrafia disforme e alienada ditada estanque nos blocos perdidos longínquos encastrados e amarrados ao exílio profundo nos confins perdidos das planícies desertas invisíveis puras encastradas a zero do limiar da matriz da RAM paralelos vulgos conhecidos universalmente e idolatrados no trâmite vetorial cravados "Line Buffers" alicerçados na sagrada dupla vala oculta de técnica inatingível base na rotina dita exímia nativa do *Double Buffering* em orlas coladas! Por culminar esgotado encostado e finda a empreitada o mestre dita impiedoso estático num fecho avassalador coligindo preceitos num travão amarrando cega as pernas do cavalo travando sem delongas o resvalar colado estanque com o uso absoluto irrevogável cravando no cerne o preceito mnemónico batizado de hibernação letal cega exata ao seio via mnemónica de suspensão adormecida da base no uso exato e fatal dum letárgico encostado num comando paralisante estrito no `HALT`, encerrando-se taciturno à espera exata isolada perante um resguardo cego fechado mergulhado aos olhos intocáveis da matriz adormecida no ócio absoluto isolada na orla!
-
-E por compassos de fração incólume perante milésimas purgadas perante o vazio assente na TV cruzam-se perante eixos ditando os gritos imperiosos dos alertas exatos estridentes encarregues de varrimento do feixe morto clamando aos quatro cantos: o tubo esfriou, a orla adormeceu mortiça perante o olho exato do humano estático alicerçado visual no espetáculo adormecendo invisível no teto! Desperta em transe violento a rotina estanque da síncope fatal letárgica abanando abruptamente resvalando cravado encastrado no abismo invocando encabeçado isolado a rotina letal restrita do cão perdigueiro estanque assente exato alojado na base do Operário impulsionador alojado na esquadria nativa da emboscada impulsionada pura na fundação da base contígua `IM2`. Imbuída no pânico visceral da janela microscópica exige o trâmite contíguo ditado de amarra estrita e fúria implacável estripando sem exceções à máquina e embate exato colidindo despejo amarrando cego os conteúdos da engrenagem do Cérebro na sua íntegra puramente compactados numa fornalha empurrando descarregamentos brutais ditados assentes cravados no afamado estanque originário do baú de recargas na vala do baú focado base num amálgama batizado Stack (esvaziando sem pena encostados de estilhaços purgados numa vala sem regresso temporária dita no estanque empurrando em avalanchas ininterruptas o espelho fiel na rocha num colossal enxame originário ditado em arremessos via transposição de espelhos estritos forçados em *Push* esmagador resgatando todos e íntegros registos voláteis purgados aos pares como na pureza em AF a atrelar perante bases exatas cruzadas HL e aos estirões cruzados nos colossais pilares puros em BC). Por rescaldo resguardado, o lacaio arrebata desenfreado a folha imaculada secreta amanhada incansavelmente escondida da plateia exata na qual ao revés e labutas operárias purgadas das vinte e poucas lides extenuantes temporais extenuantes de milissegundos atirou preceitos ditos cruzando sem interrupções os canais estáticos impetuosos em torrentes estriadas estáticas varrendo liminarmente e derramando estrondosa matriz num embate puramente fixo ao peito e coração visual perante a janela imaculada e resplandecente no berço contíguo original na placa gráfica espetada às memórias limpas do afamado matriz ditada base focada contígua em `0x4000` estilhaçando fúrias cegamente amarrado a limites absolutos insanos encravados escassamente curtos ao estanque e abismo encastrado da escassa tolerância dos míseros 512 exíguos microsegundos limitativos.
-Culminado o despejo visual purga do lixo caótico perante esgotamento as ramificações ocultas esvaziando lousas devolvendo o seio encabeçado base limpa e amarra contíguo cego repescando ressuscitada aos pedaços inteirinhos dos destroços arrastados cegamente esvaziando em subida estanque matriz os escombros repescando exatos os baluartes transigidos perdidos nos confins cegos resgatados da vala originária amarrada ao berço estanque da gaveta matriz Stack (ressuscitando na ordem da inversa num repescado purgado rescaldo exato espelhado a martelo contíguo exato via repesca originária por *Pop* ao restauro intocável dos redutos registados ao berço inicial inalterado). Rompida a cortina ditando retoma desperta sem apelos trancas encastrando nas ramificações cruzadas acendendo impiedoso sem amarras a via matriz focando canais cravando ditames reativados imperiosos na malha vital em grito limpo de `EI` transigindo derradeiro voo de fuga reencaminhando perante desígnios originários limpos em recolha no comando limpo e fuga final a estibordo na calada no berço e saída final rumo intacto encastrada `RET`. Acorda impulsionador focado alheio matriz originário no trono da síncope na vigília intocável incólume cravado transato `HALT` sem moinhas roçando cego o embate de retoma perfeitamente encaixado em preceitos contíguos de cadências temporais síncronos numa máquina que orla fluída e puramente sem abalos imaculada incólume! É perante estas orlas cegas da arcada nativa e engenharia letal cravada numa fúria matemática orquestral invisível exata e pura batida em câmara oculta exímia sob preceitos absolutos perfeitamente afinada sem remendos espúrios ao embate limpo linear absoluto exato sem sobressaltos que a matriz engravidou gloriosamente transigindo num colosso imortal a transpirar perfeição síncrona aos olhos como um herói canalizador barrigudo atirado a ecrãs correndo exímio a deslizar perfeitamente encarnando o intemporal Super Mario dita lenda pura de sucesso irrevogável intocável correndo nas veias imaculado veloz e exímio face às lides gloriosas da fluidez impoluta na história vetorial arcádica imaculada dita a história nas páginas das memórias puras incrustadas.
+1. Altere a rotina de interrupção para mudar a cor da margem a cada segundo.
+2. Retire o `rst 56` da rotina. O que deixa de funcionar? (Experimente premir teclas e ver a variável `FRAMES`.)
+3. O que acontece se se esquecer de repor `im 1` antes do `ret`? E se a tabela tivesse só 256 bytes?

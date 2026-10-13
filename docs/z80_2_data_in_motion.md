@@ -1,85 +1,179 @@
-# Data in Motion: Mover Dados no Z80 (ZX Spectrum)
+# Mover Dados
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco deste capítulo é aprofundar as formas como os dados fluem pelo processador e pela memória RAM e ROM, explorando as limitações da instrução de carga, as otimizações fantásticas permitidas pela troca de registos e os poderosos comandos concebidos para a cópia de blocos inteiros de memória.
+Grande parte de qualquer programa consiste em copiar valores de um lado para o outro: de um registo para outro, da memória para um registo, de uma zona da memória para outra. Este capítulo mostra as instruções que o Z80 tem para isso e as suas limitações.
 
-## A Instrução Universal: O Comando de Carga
+## A Instrução LD
 
-Desde o início da nossa exploração da linguagem Assembly que constatámos que a instrução de base para a movimentação de dados é o `LD` (Load). A sua sintaxe obedece a um rigor inflexível: lê-se sempre da direita para a esquerda, assumindo o formato de destino seguido da origem. Apesar de parecer um comando singular, a mnemónica `LD` traduz-se em cento e oitenta e quatro comandos de máquina diferentes, o que representa sensivelmente um quarto de todo o léxico do processador Z80!
+`ld destino,origem` copia a origem para o destino. A origem não muda. A instrução `ld` nunca altera as flags (a única exceção são `ld a,i` e `ld a,r`).
 
-Embora a arquitetura ofereça treze registos distintos de 8 bits, o processador não permite que movamos dados entre qualquer par de forma arbitrária. Existem limitações físicas. Por exemplo, os registos de Interrupção (`I`) e de Refrescamento de memória (`R`) são de uma natureza muito especial e só possuem "caminhos" diretos para trocar dados com o Acumulador (`A`). Da mesma forma, as metades dos registos de índice (`IXh`, `IXl`, `IYh`, `IYl`) não podem de todo ser emparelhadas com os clássicos `H` ou `L`, nem com as metades do registo de índice oposto.
+O Z80 tem muitas variantes de `ld`, mas não aceita todas as combinações. As que existem são:
 
-```assembly
-    ld a, i           ; Acesso válido ao registo I através do Acumulador
-    ld c, a           ; Transferência do valor para o destino final
-```
+| Forma | Exemplo | Notas |
+| :--- | :--- | :--- |
+| registo ← registo (8 bits) | `ld a,b` | Entre `A`, `B`, `C`, `D`, `E`, `H` e `L`. |
+| registo ← valor | `ld c,42` | |
+| registo ← `(hl)` | `ld e,(hl)` | Qualquer registo de 8 bits. |
+| `(hl)` ← registo ou valor | `ld (hl),a`, `ld (hl),0` | |
+| `a` ← `(bc)` ou `(de)` | `ld a,(de)` | Só com o acumulador. |
+| `(bc)` ou `(de)` ← `a` | `ld (de),a` | Só com o acumulador. |
+| `a` ← `(endereço)` | `ld a,(23560)` | Só com o acumulador. |
+| `(endereço)` ← `a` | `ld (32000),a` | Só com o acumulador. |
+| par ← valor | `ld hl,16384` | `BC`, `DE`, `HL`, `SP`, `IX`, `IY`. |
+| par ← `(endereço)` | `ld de,(23606)` | Lê 2 bytes: o baixo primeiro. |
+| `(endereço)` ← par | `ld (32000),hl` | Escreve 2 bytes: o baixo primeiro. |
+| `sp` ← `hl`, `ix` ou `iy` | `ld sp,hl` | |
+| `a` ↔ `i` ou `r` | `ld a,i`, `ld r,a` | Só com o acumulador. |
+| com índice | `ld b,(ix+3)`, `ld (iy-1),7` | |
 
-Na prática, a instrução `LD` copia um valor simulando a transferência de um papel retirado de uma gaveta (a origem) e colocado noutra (o destino). Contudo, a "envergadura" do processador é curta para certas travessias. Se precisarmos de transferir uma informação do registo `I` para o registo `C`, somos fisicamente incapazes de o fazer num movimento único e fluído. Temos obrigatoriamente de pousar essa informação primeiro na nossa mesa de trabalho principal, o Acumulador, para só de seguida a conseguirmos copiar validamente para o destino desejado.
-
-Esta limitação estende-se inevitavelmente ao manuseamento da própria memória. Como referido anteriormente nos Modos de Endereçamento, o Z80 não é arquitetonicamente capaz de efetuar cópias diretas de uma posição da RAM para outra posição da RAM.
-
-```assembly
-    ld a, (0x4000)    ; Leitura da memória RAM para o Acumulador
-    ld (0x5000), a    ; Escrita do Acumulador para um novo endereço
-```
-
-Imaginando que temos o ecrã do jogo (a VRAM) numa prateleira e a memória dedicada ao comportamento de um monstro noutra prateleira distinta, o processador não consegue esticar os dois braços em simult বহুম para trocar elementos diretamente. É imperativo recorrer a um "bolso" - habitualmente um registo primário como o `A` ou o `B` - para carregar transitoriamente a informação no trajeto entre as duas prateleiras.
-
-## Instruções de Troca Rápida
-
-Para além de cópias estritas, o Z80 dispõe de mecanismos de malabarismo. A instrução `EX` (Exchange) não atua copiando dados num sentido unidirecional; em vez disso, ela efetua uma troca simultânea e imediata entre o conteúdo de dois locais distintos.
-
-Um dos segredos mais bem guardados da arquitetura do Z80 é a existência de um conjunto "gémeo" de registos escondido no seu interior. Para cada registo principal, existe um alternativo na sombra (`A'`, `F'`, `B'`, `C'`, `D'`, `E'`, `H'`, `L'`). Como estes não são acessíveis pelos comandos de rotina normais, tornam-se no repositório perfeito para salvaguardar cópias de segurança de forma ultrarrápida, mitigando a necessidade morosa de gravar dados na memória RAM exterior ou de empurrar valores para a *Stack*.
+Algumas combinações que **não existem**, e a forma de as contornar:
 
 ```assembly
-    ex af, af'        ; Guarda o Acumulador e as Flags a salvo
+    ; ld (32000),(32001)  -> não existe: memória para memória.
+    ld a,(32001)        ; passar pelo acumulador.
+    ld (32000),a
+
+    ; ld b,(de)           -> não existe: só o acumulador lê por (de).
+    ld a,(de)
+    ld b,a
+
+    ; ld bc,de            -> não existe: não há cópias entre pares.
+    ld b,d              ; copiar as duas metades.
+    ld c,e
+
+    ; ld c,i              -> não existe: I só comunica com A.
+    ld a,i
+    ld c,a
 ```
 
-A instrução de troca do Acumulador e Estado envia os valores vigentes no Acumulador e no registo de Flags (os sinalizadores matemáticos) para os seus respetivos clones. Isto revela-se excelente para interromper subitamente um cálculo complexo de forma a dar resposta a uma emergência do sistema e, posteriormente, retomar a operação matemática exatamente do ponto onde foi deixada. É análogo a estarmos a resolver uma equação extensa num quadro magnético, rodá-lo cento e oitenta graus para obtermos uma face limpa para um apontamento urgente e, finda a urgência, rodá-lo novamente para recuperar intacta a equação original.
+A ordem dos bytes na memória é importante. `ld (32000),hl` guarda `L` em 32000 e `H` em 32001. Por isso, se `HL` = 16384 (`$4000`), o byte em 32000 fica 0 e o byte em 32001 fica 64 (`$40`). As diretivas `defw` / `dw` do assembler seguem a mesma ordem.
 
-O expoente máximo destas trocas ocorre através do comando generalizado `EXX`. Com o modesto custo de um único byte de memória, esta diretiva inverte instantaneamente os três pares completos de 16 bits (`BC`, `DE` e `HL`) pelas suas contrapartes escondidas (`BC'`, `DE'` e `HL'`).
+## Trocar em Vez de Copiar
+
+A instrução `ex` troca o conteúdo de dois sítios, sem precisar de um registo intermédio:
 
 ```assembly
-    exx               ; Troca 6 registos inteiros simultaneamente
+    ex de,hl            ; trocar DE com HL (muito usada: HL tem mais instruções).
+    ex af,af'           ; trocar AF com o AF' alternativo.
+    exx                 ; trocar BC, DE e HL com BC', DE' e HL'.
+    ex (sp),hl          ; trocar HL com os 2 bytes do topo da pilha.
 ```
 
-Se a inversão singular de um quadro magnético já se apresenta como uma otimização imensa, o comando `EXX` equivale ao luxo de podermos rodar três secretárias atoladas em folhas e afazeres, comutando imediatamente para um ambiente de trabalho limpo sem tocar numa única gaveta. Esta técnica permite, por exemplo, que a rotina principal de um jogo controle o cálculo das físicas na secretária principal, enquanto o desenho gráfico dos elementos atua confortavelmente nas secretárias da sombra, alternando entre elas com uma fluidez inatingível por operações de cópia convencionais.
+`ex af,af'` e `exx` dão acesso ao conjunto alternativo de registos. São uma forma muito rápida (4 *T-states* cada) de ter mais registos à mão, por exemplo para guardar valores durante uma rotina sem os pôr na memória. Dois cuidados:
 
-No que toca a trocas mais mundanas, a mnemónica permite também inverter comodamente os conteúdos do par `DE` com o par `HL`. Sendo este último o predileto incontestado para as funções de manipulação e endereçamento de memória, é frequente que um endereço relevante que tenha acabado no registo `DE` requeira transferência. 
+* se o programa vai voltar ao BASIC, tem de deixar `HL'` como o encontrou, porque o BASIC precisa dele;
+* não existe forma de copiar diretamente de `B` para `B'`: só se troca o conjunto inteiro.
+
+## Copiar Blocos de Memória
+
+Para copiar muitos bytes seguidos, o Z80 tem instruções próprias, que usam sempre os mesmos registos: `HL` = origem, `DE` = destino e `BC` = número de bytes.
+
+| Instrução | O que faz |
+| :--- | :--- |
+| `ldi` | Copia 1 byte de `(HL)` para `(DE)`; `HL` e `DE` aumentam 1, `BC` diminui 1. |
+| `ldir` | Repete `ldi` até `BC` chegar a 0. |
+| `ldd` | Copia 1 byte de `(HL)` para `(DE)`; `HL` e `DE` diminuem 1, `BC` diminui 1. |
+| `lddr` | Repete `ldd` até `BC` chegar a 0. |
+
+Copiar o ecrã inteiro (píxeis e atributos, 6912 bytes) para um buffer em 49152:
 
 ```assembly
-    ex de, hl         ; Troca de conteúdos entre as mãos do CPU
+    ld hl,16384         ; origem: o ecrã.
+    ld de,49152         ; destino: o buffer.
+    ld bc,6912          ; 6144 bytes de píxeis + 768 de atributos.
+    ldir
 ```
 
-Neste cenário, a permuta direta não só é elegante como consideravelmente mais expedita do que forjar uma transferência intrincada através do uso engenhoso de múltiplos registos intermédios de 8 bits.
+Cuidado: `ldir` com `BC` = 0 não copia zero bytes, copia 65536, e destrói toda a memória.
 
-## Cópias de Blocos de Memória em Massa
+### Quando usar LDDR
 
-Quando enfrentamos a necessidade hercúlea de transpor vastas áreas de memória - como a cópia monumental de 6912 bytes requerida para transferir um quadro visual inteiro para o ecrã no clássico método de *Double Buffering* -, a repetição incansável de comandos normais revelaria ser um desastre a nível de velocidade. Felizmente, os engenheiros dotaram o Z80 de macroinstruções gravadas diretamente no hardware que varrem autonomamente grandes extensões da RAM.
-
-### Load Increment Repeat (LDIR)
-
-Esta modesta instrução composta por dois bytes corporiza uma verdadeira central automática de duplicação. A sua mecânica dita que o byte lido na origem apontada por `HL` é imediatamente gravado no destino apontado por `DE`. Concluído esse micrôpasso, a instrução age organicamente incrementando tanto o endereço da origem como o do destino e subtraindo de imediato uma unidade ao contador global estipulado no par `BC`. Exibindo a natureza de repetição inscrita na sua nomenclatura, a instrução atua então num microcosmo e repete agressivamente o ciclo inteiro de cópia vezes sem conta, de forma ininterrupta, até que o contador de viagens assinale o cobiçado valor zero.
+Se a origem e o destino se sobrepõem, a direção conta. Para deslocar um bloco para endereços **mais altos**, é preciso copiar do fim para o princípio com `lddr`; caso contrário, os primeiros bytes copiados apagam bytes da origem que ainda não foram lidos. Por exemplo, para abrir um espaço de 1 byte no início de uma tabela de 100 bytes:
 
 ```assembly
-    ld hl, 0x4000     ; Origem: Início do ecrã antigo
-    ld de, 0xE000     ; Destino: Início da área de sombra
-    ld bc, 6912       ; Quantidade total a transportar
-    ldir              ; Execução autónoma da macro cópia
+    ld hl,tabela+98     ; último byte a mover (origem).
+    ld de,tabela+99     ; uma posição à frente (destino).
+    ld bc,99            ; mover 99 bytes.
+    lddr                ; do fim para o princípio.
 ```
 
-Em vez de termos de congeminar lógicas sofisticadas de iteração recorrendo a saltos e verificações intrincadas, o simples apelo a um `LDIR` resume-se a alicerçar corretamente a logística dos "camiões". Definimos a morada onde a carga repousa, o ponto final de entrega e o número exato de embalagens a lidar; de seguida, o processador assimila as ordens e lida com toda a travessia debaixo do capô da arquitetura de forma absolutamente diligente.
+### Preencher memória com LDIR
 
-### Load Decrement Repeat (LDDR)
-
-A faceta espelhada da instrução supra encontra-se na sua prima decremental: a `LDDR`. O seu encargo é substancialmente o mesmo, com a drástica diferença de percorrer as moradas orientada em marchas-atrás. Após efetuar a cópia exata de um byte, o processador atua por subtrair valores às origens e destinos (`HL - 1`, `DE - 1`), diminuindo igualmente as passagens sobrantes alojadas no contador.
-
-A utilidade magna desta abordagem retrógrada manifesta-se nos cenários perigosos onde o bloco de memórias inicial colide frontalmente ou se sobrepõe parcialmente com o destino almejado da cópia. 
+Um truque clássico: para encher uma zona de memória com o mesmo valor, escreve-se o valor no primeiro byte e copia-se a zona sobre si própria, uma posição à frente. Cada byte copiado é o valor que acabou de ser escrito.
 
 ```assembly
-    ld hl, 0x5FFF     ; Origem: Final exato do bloco
-    ld de, 0xFFFF     ; Destino: Final exato da secção recetora
-    ld bc, 100        ; Contador dos bytes a copiar
-    lddr              ; Avanço regressivo 
+    ld hl,22528         ; primeiro atributo.
+    ld (hl),56          ; preto sobre branco.
+    ld de,22529         ; uma posição à frente.
+    ld bc,767           ; os restantes 767 atributos.
+    ldir                ; agora são todos 56.
 ```
 
-Sem a cautela proporcionada pela travessia regressiva, arriscamo-nos a que a onda de dados avance sobre si mesma, aniquilando a vanguarda do conteúdo intato em prol das retaguardas já recopiadas. O `LDDR` serve assim de seguro indispensável à integridade da nossa memória, forçando a operação a começar na cauda da procissão garantindo um desfasamento natural de fuga à sobreposição de cópia em progressão.
+## Um Programa Completo
+
+Este programa usa as instruções do capítulo. Enche o ecrã de carateres, guarda uma cópia do ecrã num buffer com `ldir`, apaga os píxeis com o truque do preenchimento e, depois de uma pausa, repõe o ecrã a partir da cópia.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+    ld b,0              ; 256 vezes...
+texto:
+    ld a,b
+    and 63              ; ...um carácter entre 32 e 95.
+    add a,32
+    rst 16
+    djnz texto
+    ld b,0              ; mais 256.
+texto2:
+    ld a,b
+    and 63
+    add a,32
+    rst 16
+    djnz texto2
+
+    ld hl,16384         ; guardar o ecrã no buffer.
+    ld de,49152
+    ld bc,6912
+    ldir
+
+    call pausa
+
+    ld hl,16384         ; apagar os píxeis: preencher com zeros.
+    ld (hl),0
+    ld de,16385
+    ld bc,6143
+    ldir
+
+    call pausa
+
+    ld hl,49152         ; repor o ecrã a partir do buffer.
+    ld de,16384
+    ld bc,6912
+    ldir
+    ret
+
+pausa:
+    ld b,50             ; 50 fotogramas = 1 segundo.
+pausa0:
+    halt
+    djnz pausa0
+    ret
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_02_1.tap"
+        SAVETAP  "z80_02_1.tap",BASIC,"z80_02_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_02_1.tap",CODE,"z80_02_1",start,fim-start
+```
+
+## Exercícios
+
+1. Altere o programa para, em vez de apagar os píxeis, pintar todos os atributos de amarelo (papel 6) antes de repor o ecrã.
+2. Escreva uma rotina que troque os valores das variáveis de 16 bits `var1` e `var2` usando `ex de,hl`.
+3. O que acontece se, no truque do preenchimento, usar `lddr` em vez de `ldir` (com os endereços ajustados ao fim da zona)?

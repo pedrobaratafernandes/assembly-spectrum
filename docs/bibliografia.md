@@ -1,9 +1,19 @@
 # Bibliografia e Fontes
 
-As fundações deste volume, a mestria da máquina e os arcanos do processador Z80, alicerçam-se profundamente numa herança intemporal de documentação técnica. O conhecimento decalcado nestas páginas não surge do vazio; é o corolário de décadas de exploração, desmontagem e partilha pelas lides incansáveis da comunidade dedicada à retro-computação e ao ZX Spectrum.
+## Livro de Base
 
-No varrimento da arquitetura base e nos preceitos do Assembly, a inspiração bebeu diretamente dos sagrados manuais de nascença da própria Zilog – nomeadamente o Z80 CPU User Manual –, cuja crueza técnica moldou o entendimento fundamental da letal transação de bits. As fintas do hardware, da misteriosa ULA às particularidades da ROM de 48K, espelham as revelações dos técnicos da Sinclair Research e dos incontáveis e exímios exploradores que desbravaram a neblina destas entranhas nas décadas subsequentes, partilhando abertamente o seu suor através de tutoriais, fanzines e publicações especializadas.
+* **Jonathan Cauldwell, *How to Write ZX Spectrum Games*, versão 1.1.** Os capítulos da Parte 2 são uma tradução adaptada deste livro, incluindo as listagens de código. O original, em inglês, é do autor, que mantém todos os direitos.
 
-Para as lides de desenvolvimento prático e construção do motor de jogo — desde o embate dos sprites à dança frenética das colisões e rotinas musicais —, este compêndio deve o seu alinhamento aos vastos acervos técnicos da comunidade. O método de estruturar um jogo no Spectrum é uma arte coletiva; as técnicas aqui descritas são o eco apurado de tutoriais exaustivos, artigos técnicos e guias de referência prática que ensinaram gerações a dominar o hardware do ZX Spectrum, e que hoje sobrevivem no grande arquivo da era digital.
+## Processador Z80
 
-Todo o código transacionado nesta obra foi exaustivamente adaptado, purgado do seu pó e atualizado para a bitola do moderno compilador cruzado *sjasmplus*, providenciando assim uma ponte fiável entre as velhas magias do Z80 e o conforto das ferramentas atuais. Um profundo agradecimento a todos os pioneiros sem rosto que cimentaram a estrada por onde hoje continuamos a criar e a sonhar no ecrã de 256x192 píxeis.
+* **Zilog, *Z80 CPU User Manual*** (UM0080): a referência oficial das instruções, das flags e dos tempos de execução de cada instrução.
+
+## ZX Spectrum
+
+* **Steven Vickers, *Sinclair ZX Spectrum BASIC Programming*** (o manual que acompanhava o Spectrum): descreve o BASIC, o mapa de memória, as variáveis de sistema, o teclado e os códigos de carácter.
+* **Ian Logan e Frank O'Hara, *The Complete Spectrum ROM Disassembly*** (Melbourne House, 1983): a ROM do 48K comentada linha a linha. É a fonte dos endereços das rotinas da ROM usadas neste livro.
+
+## Ferramentas
+
+* **sjasmplus**: [github.com/z00m128/sjasmplus](https://github.com/z00m128/sjasmplus). A documentação descreve as diretivas usadas no livro (`DEVICE`, `ORG`, `DUP`, `INCBIN`, `EMPTYTAP`, `SAVETAP`).
+* **Fuse, the Free Unix Spectrum Emulator**: [fuse-emulator.sourceforge.net](https://fuse-emulator.sourceforge.net/).

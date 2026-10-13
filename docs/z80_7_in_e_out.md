@@ -1,60 +1,168 @@
-# O Mundo Cá Fora: Input e Output (ZX Spectrum)
+# Entrada e Saída
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. Após exaustivos capítulos encerrados nas profundezas do "cérebro" da máquina processando lógica e matemática isoladas nas moradas virtuais, o nosso foco recai sobre o tangível: a interação viva com a dimensão física cá de fora, nomeadamente espiando o premir exato do Teclado humano e ressoando a nossa voz no mundo através dos apitos do Beeper nativo.
+Além da memória, o Z80 tem um segundo espaço de endereços: as **portas** de entrada/saída, onde estão ligados os periféricos. Lê-se de uma porta com `in` e escreve-se com `out`. No Spectrum 48K quase tudo passa por uma única porta, a 254 (`$FE`), que pertence à ULA: o teclado, a cor da margem, o altifalante e a ficha de gravação.
 
-## As Portas Mágicas e a ULA
+## As Instruções IN e OUT
 
-Numa grande maioria dos microprocessadores que popularizaram os lares na mesma década (sendo o 6502 da Nintendo um exemplo paradigmático), o hardware impunha aos arquitetos a reserva compulsiva de preciosos endereços de memória RAM para a consulta estrita de comandos externos ou atributos de imagem. A isto chama-se "Memory Mapped I/O" e subtrai espaço útil de jogo. A filosofia estrutural do Z80 contorna este desperício por via de separação de domínios: a sua memória é cem por cento votada para o armazenamento exclusivo de código e variáveis. Para escutar ou ditar recados ao hardware que guarnece a carcaça de plástico preta, foi cunhada uma via de comunicação eletromecânica intrínseca denominada "Portas de I/O" (Input/Output).
-
-Na engrenagem do clássico ZX Spectrum, existe um componente supremo encarregue de orquestrar as luzes vitais, varrer o sinal PAL da TV, zumbir a cápsula de som e traduzir o pisar acrílico das dezenas de teclas. O seu nome é ULA (Uncommitted Logic Array). Como guardião intransigente do sistema externo, ele aceita recados e atende invariavelmente e apenas as chamadas telefónicas oriundas de Portas I/O cujo endereço ostente um número par e imaculado, isto é, que encerre os seus zeros lógicos e determine que o byte assente no valor hexadecimal `0xFE`.
-
-Para assimilação pacífica, basta que o programador encare o veloz Z80 como o corriqueiro cidadão de uma província próspera - a gigantesca Matriz RAM onde todas as casas desde o logradouro 0 à moradia 65535 se encontram acessíveis por calçada. Porém, o famigerado Teclado e a cápsula do Altifalante são aldeias cravadas noutra latitude; a sua dimensão física não partilha calçadas connosco. A única ponte que as une atua via estação de correios oficial - que na analogia traduz fisicamente as Portas de I/O. A sede majestosa dos correios da ULA ostenta de forma intocável o código postal remate `0xFE`. Um envio imperativo endereçado para os trâmites do `0xFE` voa liminarmente de dentro da cidade central caindo no tapete rolante do hardware exótico que rodeia o coração da pastilha Z80.
-
-## Auscultar o Teclado
-
-Na intenção inabalável de coligir os humores e vontades do humano, o CPU vale-se do seu mensageiro mais fiável: a sagrada instrução de entrada `IN` (Input).
-
-No emaranhado de fios que desenham o teclado num ZX Spectrum, a constatação vital revela que as teclas não operam singularmente numa panóplia caótica, mas assentam ordeiramente através duma grelha matriz de linhas. Para questionar o CPU e exigir a leitura completa duma linha restrita, torna-se forçoso erigir e enviar uma instrução assente em 16 longos bits:
-A metade inferior obedece perpetuamente ao valor de `0xFE`, assinalando a chamada primordial de despertamento da ULA supra falada.
-O remanescente segmento de topo assume então a batuta indicativa ditando a qual das artérias da matriz de borracha pertence a solicitação de vigilância requerida pelo nosso crivo (ex: focar estritamente o quadrante agrupando a sequência transversal das famosas `A, S, D, F e G`).
-
-> [!WARNING]
-> **A Rasteira Constante dos Zeros:** Sob os desígnios tortuosos dos velhos tempos de engenharia digital barata, dita a lógica invertida nas condutas que a matriz assenta por defeito os seus pinos em tensão elétrica pura e vibrante. Significa, pois, que se o dedo mantiver repouso e a tecla seguir impoluta, o processador absorve esse silêncio num `1` afirmativo brilhante e ressoante. Assim que o polegar esmaga finalmente a membrana cortando de raspão as correntes orgânicas, o painel do CPU é informado por um escuro e ríspido abismo no bit, traduzindo as vontades do leitor pressionado como um absoluto e indubitável `0`! 
+Os endereços das portas também têm 16 bits. Há duas formas de os indicar:
 
 ```assembly
-    ld a, 0xFE        ; Depositamos metodicamente o Endereço Alto da matriz almejada (Fila V a CAPS)
-    in a, (0xFE)      ; A Invocação!
+    ld a,$FE            ; byte alto do endereço.
+    in a,(254)          ; ler a porta A*256+254: o byte alto vem de A.
+
+    ld bc,$FEFE         ; endereço completo em BC.
+    in d,(c)            ; ler a porta BC para D (qualquer registo).
+
+    out (254),a         ; escrever A na porta A*256+254.
+    out (c),e           ; escrever E na porta BC.
 ```
 
-Neste simples compasso encerra-se um portento mecânico fascinante: a instrução apoderou-se magicamente do conteúdo retido internamente no interior da gaveta residente de topo e, sub-repticiamente juntando ao acoplamento constante `(0xFE)` encastrado fixo por definição no código máquina redigido pelo compilador da instrução, expediu rumo aos circuitos ULA longínquos o formidável e composto pedido duplo unificado pela amálgama `0xFEFE`. Atendida que é a porta do correio, este `IN` encarrega-se sem tréguas nem intermédios de verter a dita resposta recolhida da grelha de plástico obliterando num arrasto esmagador as vontades exatas destas precisas cinco chaves isoladas no mesmo peito do incansável Acumulador (`A`).
+Apesar de se escrever `(c)`, a instrução usa o par `BC` inteiro como endereço. A ULA só olha para o bit 0 do byte baixo do endereço (tem de ser 0), mas o teclado usa o byte alto, como se vê a seguir.
 
-Se na arte do refinamento programático urgir apartar das mãos do atarefado Acumulador a responsabilidade mesquinha e volátil das requisições do teclado intermédias para melhor proveito futuro da fluência logarítmica de batalha no ciclo de jogo: o sistema Z80 prevê um recanto ordenado emparedando sem confusões e subentendidos crípticos a construção meticulosa inteira da fachada portuária no sólido suporte par alojado na estrutura de 16 bits de nomeada `BC` esvaziando comodamente os frutos de vigilância da tecla num desígnio à parte como na cabine exata `D`.
+## Ler o Teclado
+
+O teclado do Spectrum tem 40 teclas, organizadas em 8 meias-linhas de 5. Para ler uma meia-linha, põe-se a 0 o bit correspondente do byte alto do endereço:
+
+| Byte alto | Porta | Teclas (bit 0 … bit 4) |
+| :--- | :--- | :--- |
+| `$FE` = `11111110` | 65278 | CAPS SHIFT, Z, X, C, V |
+| `$FD` = `11111101` | 65022 | A, S, D, F, G |
+| `$FB` = `11111011` | 64510 | Q, W, E, R, T |
+| `$F7` = `11110111` | 63486 | 1, 2, 3, 4, 5 |
+| `$EF` = `11101111` | 61438 | 0, 9, 8, 7, 6 |
+| `$DF` = `11011111` | 57342 | P, O, I, U, Y |
+| `$BF` = `10111111` | 49150 | ENTER, L, K, J, H |
+| `$7F` = `01111111` | 32766 | SPACE, SYMBOL SHIFT, M, N, B |
+
+O valor lido tem uma tecla em cada um dos bits 0 a 4, com **0 = premida** e 1 = solta. Os bits 5 a 7 não interessam para o teclado. Por exemplo, para saber se a tecla Q está premida:
 
 ```assembly
-    ld bc, 0xFEFE     ; O edifício completo transigido inteiramente na segurança dos 16 bits BC
-    in d, (c)         ; A recolha cega desfecha perante as portas colhidas em C rumo ao ninho de D
+    ld a,$FB            ; meia-linha Q, W, E, R, T.
+    in a,(254)
+    bit 0,a             ; Q é o bit 0.
+    jr z,q_premida      ; bit a 0: premida.
 ```
 
-## Romper com a Barreira do Som: A Exalação Através do Beeper
-
-Invocado o espírito de entrada, urge reverter o sentido da maré perante a exigência altiva de exprimir no exterior vontades forjadas a ferro dentro do seio do silicone. Em Assembly de Z80, isto corporiza a essência estrita do comando reverso assinalado na sigla `OUT` e a consequente viagem expedita ao exterior dos "Correios". 
-
-É consabido historicamente que a encarnação original dos 48K do ZX Spectrum não perfilhava qualquer regalia sob a figura pomposa e dedicada na glória imponente dum sintetizador musical puro. A máquina bramia e grunhia alicerçando o espectro sonoro inteiro unicamente num solitário sensor circular rudimentar soldado à placa eletrónica num engate de latão piezométrico (simples e vulgarmente conhecido nas ruas por *Beeper*). Ele confina as nuances acústicas obedecendo terna e passivamente à cadência intermitente dum paupérrimo e individual canal, um pino binário aprisionado em estrito rigor arquitetónico dentro da redoma do *Bit 4* do pórtico universal de nome `0xFE`.
-
-Nesta planície infértil e restrita a estados absolutos e limitados à ausência e presença ("On" contra "Off"), compor melodia ou proferir o ruído afigura-se num bailado vertiginoso dependente, de modo brutal, dos abanões enérgicos de pulsação e oscilação de estados instáveis do próprio pórtico induzindo as estridências por arrasto do cone material num esticão infindável de subidas vertiginosas perante quebras rápidas. Para gerar tons com distinção há que alternar ciclicamente em torpor vibracional da mesma índole em que uma corda de guitarra impoluta reage: tencionada no trambolhão libertada a voos longos perante oscilações intermédias e imensamente afinadas em ondas contínuas de frequência imutável. 
+Se pusermos vários bits do byte alto a 0, lemos várias meias-linhas ao mesmo tempo (os resultados juntam-se com um "e"). Com o byte alto a 0, lemos o teclado inteiro: se `in` devolver os bits 0-4 todos a 1, não há nenhuma tecla premida.
 
 ```assembly
-    ei                ; Rompem-se os selos auditivos do silêncio; a porta atende os apelos de Hardware
-    ld c, 0xFE        ; Morada sacrossanta fincada nas portas ULA
-  
-  som_infinito:
-    xor 0x10          ; Máscara imposta sob artes negras, visando cegamente a integridade do Bit 4
-                      ; Comutando ritmadamente em negação e encarnando no reverso imediato o que repousava no estado do bit sonoro.
-                      
-    halt              ; Espera dócil e plácida pelas pinceladas de transição vertical PAL aos ritmos da TV.
-    out (c), a        ; Injeta fisicamente através do porte central (em C) o espasmo sonoro vital na membrana externa.
-    
-    jr som_infinito   ; Puxão infinito sem contemplações tecendo espirais cíclicas num zumbido inquebrantável a 25 Hz brutos.
+espera:
+    xor a               ; byte alto = 0: todas as meias-linhas.
+    in a,(254)
+    cpl                 ; inverter: agora 1 = premida.
+    and 31              ; só os bits das teclas.
+    jr z,espera         ; nenhuma tecla: continuar à espera.
 ```
 
-No dealbar primitivo dum modelo de 48K puro a sonoplastia traduzia-se num pesadelo de monopólio abissal canibalizando perversamente um processamento nevrálgico precioso da ação fluída devido à estrita imposição síncrona manual e dedicada do envio e escuta do som; não raras vezes a custo integral do próprio jogo perante a mudez súbita das tréguas de combate em pausas acústicas. Sombras deste fardo hercúleo que o futuro nos reservará e apaziguará mais adiante num amadurecimento dos ensinamentos que libertará esta caixa de latão por tons celestes e composições plásticas a desvendar em vias iminentes nesta obra.
+O joystick Kempston lê-se na porta 31, com a lógica ao contrário: 1 = acionado. Os bits são 0 = direita, 1 = esquerda, 2 = baixo, 3 = cima e 4 = disparo.
+
+## Escrever na Porta 254
+
+O byte escrito na porta 254 controla três coisas:
+
+| Bits | Função |
+| :--- | :--- |
+| 0 – 2 | Cor da margem (0 a 7). |
+| 3 | Saída MIC (gravação em cassete). |
+| 4 | Altifalante (*beeper*). |
+
+```assembly
+    ld a,2              ; margem vermelha, altifalante desligado.
+    out (254),a
+```
+
+Esta cor dura só até a ROM mudar a margem outra vez. Para a mudar de forma permanente, chama-se a rotina da ROM em 8859 (capítulo 1 da Parte 2).
+
+## Fazer Som
+
+O altifalante do 48K só tem dois estados: ligado e desligado (bit 4). Para produzir um som, liga-se e desliga-se o bit 4 muitas vezes por segundo: a frequência do som é o número de ciclos completos (liga + desliga) por segundo. Entre cada mudança espera-se um pouco, e a duração dessa espera define o tom: espera curta, som agudo; espera longa, som grave.
+
+Enquanto o programa gera som, não faz mais nada: o Z80 está ocupado a contar o tempo entre mudanças. As interrupções também perturbam o tom, por isso desligam-se com `di` durante o som.
+
+## Um Programa Completo
+
+Este programa mostra no ecrã o estado da meia-linha Q-W-E-R-T, como bits, enquanto muda a cor da margem quando se carrega em Q. Quando se carrega em SPACE, toca um som curto pelo altifalante e volta ao BASIC.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+ciclo:
+    halt                ; uma leitura por fotograma.
+    ld a,22             ; AT 0,0.
+    rst 16
+    xor a
+    rst 16
+    xor a
+    rst 16
+    ld a,$FB            ; meia-linha Q, W, E, R, T.
+    in a,(254)
+    push af
+    call bits5          ; mostrar os 5 bits das teclas.
+    pop af
+    and 1               ; Q: bit 0 (0 = premida).
+    ld a,7              ; margem branca...
+    jr nz,solta
+    ld a,2              ; ...ou vermelha, se Q estiver premida.
+solta:
+    out (254),a
+    ld a,$7F            ; meia-linha SPACE, SYMBOL SHIFT, M, N, B.
+    in a,(254)
+    rra                 ; SPACE é o bit 0: passa para o carry.
+    jr c,ciclo          ; carry = 1: solta, continuar.
+
+    di                  ; som: nada de interrupções.
+    ld a,7              ; margem branca, bit 4 a 0.
+    ld b,0              ; 256 meios-ciclos.
+    ld c,a
+som:
+    ld a,c
+    xor 16              ; trocar o bit 4 (altifalante).
+    ld c,a
+    out (254),a
+    ld e,100            ; espera: define o tom.
+som0:
+    dec e
+    jr nz,som0
+    djnz som
+    ei
+    ret
+
+    ; Mostrar os bits 4 a 0 de A como "0" e "1".
+bits5:
+    rlca                ; deitar fora os bits 7, 6 e 5...
+    rlca
+    rlca
+    ld b,5              ; ...e mostrar os 5 seguintes.
+bits50:
+    rlca                ; próximo bit para o carry.
+    push af
+    ld a,'0'
+    jr nc,bits51
+    inc a
+bits51:
+    rst 16
+    pop af
+    djnz bits50
+    ret
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_07_1.tap"
+        SAVETAP  "z80_07_1.tap",BASIC,"z80_07_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_07_1.tap",CODE,"z80_07_1",start,fim-start
+```
+
+Sem nenhuma tecla premida, aparece `11111` (lido da esquerda para a direita: T, R, E, W, Q). Com Q premida, aparece `11110` e a margem fica vermelha.
+
+## Exercícios
+
+1. Mude o programa para mostrar a meia-linha P-O-I-U-Y.
+2. Altere a espera do som (`ld e,100`) para 50 e para 200. O que acontece ao tom e à duração?
+3. Escreva uma rotina que devolva Z = 1 se nenhuma tecla estiver premida.

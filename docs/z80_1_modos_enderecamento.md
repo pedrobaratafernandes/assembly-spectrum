@@ -1,251 +1,246 @@
-# Modos de Endereçamento do CPU Z80 (ZX Spectrum)
+# O Z80, a Memória e os Modos de Endereçamento
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. O foco é compreender como o processador Z80 interage com a memória e com os registos através dos vários modos de endereçamento (Addressing Modes).
+Este capítulo apresenta o processador do ZX Spectrum, o Z80, e as várias formas que as instruções têm de indicar onde estão os dados com que trabalham: os **modos de endereçamento**. No fim há um programa completo que usa quase todos.
 
-## Introdução
+Se ainda não instalou o sjasmplus e o Fuse, comece por [Preparar o Ambiente](ferramentas.md).
 
-O sistema Z80 possui um espaço de memória de 16 bits, o que lhe permite endereçar até 64 KB de memória. No ZX Spectrum 48K, a arquitetura é relativamente simples e direta, não sendo necessário recorrer a técnicas complexas como o *banking* (paginação de memória) comum em modelos posteriores. Os primeiros 16 KB da memória correspondem à ROM (Read-Only Memory), uma área apenas de leitura onde reside o sistema operativo do Spectrum. Os restantes 48 KB correspondem à memória RAM, que inclui a área dedicada à memória de vídeo onde os gráficos são desenhados.
+## Bits, Bytes e Hexadecimal
 
-## Modos de Endereçamento Oficiais
+O Z80 é um processador de **8 bits**: a maior parte das operações trabalha com bytes, números de 0 a 255. Para endereços de memória usa **16 bits**, números de 0 a 65535.
 
-Para conseguirmos programar o Z80 de forma eficaz, precisamos de dominar as diferentes formas de aceder e manipular os dados. A estas formas chamamos Modos de Endereçamento.
+Em assembly é comum escrever números em hexadecimal (base 16), porque cada algarismo hexadecimal corresponde exatamente a 4 bits:
 
-### Modo Implícito (Implied Addressing)
+| Decimal | Binário | Hexadecimal |
+| :--- | :--- | :--- |
+| 0 | `%00000000` | `$00` |
+| 10 | `%00001010` | `$0A` |
+| 15 | `%00001111` | `$0F` |
+| 16 | `%00010000` | `$10` |
+| 255 | `%11111111` | `$FF` |
+| 16384 | — | `$4000` |
+| 65535 | — | `$FFFF` |
 
-O modo de endereçamento mais fundamental é o Modo Implícito. Trata-se de um conjunto de instruções que não necessita de quaisquer operandos ou argumentos externos. Todo o contexto necessário para que o processador saiba o que fazer já se encontra embutido no próprio *opcode* (o código máquina gerado pela instrução).
+No sjasmplus, os prefixos `$`, `#` e `0x` indicam hexadecimal e `%` indica binário. Os bits de um byte numeram-se de 0 (o da direita, que vale 1) a 7 (o da esquerda, que vale 128).
 
-Este modo é habitualmente utilizado para operações fixas e intrínsecas à gestão do próprio CPU. Como o processador não precisa de perder tempo a interpretar variáveis adicionais ou a ir buscar dados à memória RAM, estas instruções são incrivelmente compactas e executam-se com a máxima rapidez. Um exemplo clássico é a instrução de retorno:
+## A Memória do Spectrum 48K
+
+O Z80 consegue endereçar 64 KB (65536 bytes). No Spectrum 48K estão divididos assim:
+
+| Endereços | Conteúdo |
+| :--- | :--- |
+| 0 – 16383 (`$0000`–`$3FFF`) | ROM: o BASIC e as rotinas do sistema. Só pode ser lida. |
+| 16384 – 22527 (`$4000`–`$57FF`) | Píxeis do ecrã (6144 bytes). |
+| 22528 – 23295 (`$5800`–`$5AFF`) | Atributos (cores) do ecrã (768 bytes). |
+| 23296 – 23551 (`$5B00`–`$5BFF`) | *Buffer* da impressora. |
+| 23552 – 23733 (`$5C00`–`$5CB5`) | Variáveis de sistema. |
+| 23734 – … | Canais, programa BASIC, variáveis e área livre. |
+| … – 65535 (`$FFFF`) | Fim da RAM. |
+
+Os nossos programas são carregados em 32768 (`$8000`). A partir daí, a RAM é "não contendida": a ULA, o circuito que desenha o ecrã, nunca atrasa o processador quando este acede a ela, por isso o código corre mais depressa do que abaixo de 32768.
+
+## Os Registos
+
+Os registos são pequenas memórias dentro do processador, muito mais rápidas do que a RAM. O Z80 tem estes:
+
+| Registo | Tamanho | Uso principal |
+| :--- | :--- | :--- |
+| `A` | 8 bits | Acumulador: quase todas as contas de 8 bits e operações lógicas fazem-se aqui. |
+| `F` | 8 bits | Flags: bits que guardam informação sobre o resultado da última operação (zero, transporte, sinal…). |
+| `B`, `C`, `D`, `E`, `H`, `L` | 8 bits | Uso geral. Podem juntar-se aos pares: `BC`, `DE` e `HL`, de 16 bits. |
+| `HL` | 16 bits | O par preferido para apontar para a memória e para somas de 16 bits. |
+| `BC` | 16 bits | Muitas vezes usado como contador (`B` sozinho é o contador do `djnz`). |
+| `DE` | 16 bits | Muitas vezes usado como endereço de destino. |
+| `IX`, `IY` | 16 bits | Registos de índice: apontam para o início de uma estrutura de dados. O BASIC usa `IY`. |
+| `SP` | 16 bits | *Stack Pointer*: o topo da pilha (capítulo 5). |
+| `PC` | 16 bits | *Program Counter*: o endereço da próxima instrução a executar. |
+| `I` | 8 bits | Usado nas interrupções em modo 2 (capítulo 11). |
+| `R` | 8 bits | *Refresh*: muda sozinho a cada instrução. |
+
+Existe ainda um segundo conjunto, `AF'`, `BC'`, `DE'` e `HL'`, que não se usa diretamente. Só se lhe chega trocando-o com o conjunto normal (capítulo 2).
+
+## Modos de Endereçamento
+
+A instrução mais usada do Z80 é `ld` (*load*, carregar), que copia um valor de um sítio para outro. Em todas as instruções com dois operandos, o **destino vem primeiro** e a **origem depois**: `ld a,b` copia `B` para `A`. Os modos de endereçamento são as formas de indicar esses operandos.
+
+### Implícito
+
+A instrução não tem operandos: tudo o que precisa está no próprio código da instrução.
 
 ```assembly
-    ret               ; Regressa de onde veio
+    ret                 ; voltar da sub-rotina.
+    di                  ; desligar as interrupções.
+    ei                  ; ligá-las de novo.
 ```
 
-A instrução `RET` é a forma de dizermos ao processador para "retornar". Se imaginarmos que o código principal foi interrompido para executar uma tarefa secundária noutra zona da memória (uma sub-rotina), a instrução `RET` atua como o bilhete de regresso. Ela não precisa que lhe digamos explicitamente para onde voltar, visto que o Z80 é suficientemente inteligente para ter guardado automaticamente o caminho de volta quando iniciou essa tarefa. Outros exemplos incluem comandos como `EI` e `DI` para ligar e desligar interrupções do sistema.
+### Registo
 
-### Modo de Registo (Register Mode)
-
-Quando precisamos de velocidade pura, recorremos ao Modo de Registo. Neste caso, a instrução atua diretamente sobre os registos internos do Z80, sejam eles de 8 bits ou de 16 bits (como `A`, `B`, `HL` ou `AF`).
-
-Como esta operação ocorre unicamente dentro das "entranhas" do processador, é a forma mais rápida de manipular dados, abolindo a necessidade de comunicar com a memória RAM exterior. Quase todas as transferências de dados entre registos resultam num único byte de código máquina. Por este motivo, é a escolha ideal para guardar variáveis ou contadores que sejam acedidos com grande frequência durante a execução de um jogo.
+Os operandos são registos. É o modo mais rápido, porque não há acesso à memória.
 
 ```assembly
-    ld b, 10          ; Prepara o número 10 no registo B
-    ld a, b           ; Copia o conteúdo do registo B para o A
+    ld a,b              ; copiar B para A.
+    inc c               ; somar 1 a C.
 ```
 
-Em linguagem Assembly do Z80, a instrução de base é o `LD`, que significa "Load" (Carregar ou Copiar). A ordem de leitura é estrita e funciona sempre da direita para a esquerda: destino, depois origem. Assim, a instrução `LD A, B` diz ao processador para olhar para o número guardado no registo `B` e fazer uma cópia exata do mesmo para o registo `A`. Este registo `A`, conhecido como Acumulador, é o principal local de trabalho do processador onde a maior parte das operações matemáticas e lógicas tem lugar.
+### Imediato
 
-### Modo Imediato (Immediate Addressing)
-
-Por vezes, sabemos de antemão qual é o número exato com o qual queremos trabalhar. Nesses casos, utilizamos o Modo Imediato, no qual o valor numérico é colocado diretamente (ou "chumbado") no próprio código da instrução.
-
-Este modo serve para carregar constantes numéricas ou dados fixos de 8 bits (valores de 0 a 255). A grande vantagem deste método reside, mais uma vez, na rapidez e na economia de ciclos. Como o valor a ser processado já está embutido no código máquina lido pelo processador, este escusa de perder tempo a procurar esse mesmo valor noutro endereço de memória.
+O valor está escrito na própria instrução, logo a seguir ao código. Pode ser de 8 bits ou, nas instruções de 16 bits, de 16 bits (a que alguns manuais chamam "imediato estendido").
 
 ```assembly
-    ld b, 5           ; Carrega o número 5 diretamente no registo B
+    ld b,5              ; B = 5.
+    ld hl,16384         ; HL = 16384.
+    add a,10            ; A = A + 10.
 ```
 
-Em vez de copiarmos o valor de um registo para outro, injetamos um número fixo diretamente no destino. A instrução `LD B, 5` ordena simplesmente que o número 5 seja guardado no registo `B`. Este número 5 não é uma referência a uma morada de memória, mas sim a constante matemática 5.
+### Direto (estendido)
 
-### Modo Imediato Extendido (Extended Immediate Addressing)
-
-O Modo Imediato Extendido partilha a mesma filosofia do Modo Imediato, mas expande a sua capacidade para lidar com valores maiores. É utilizado para injetar constantes de 16 bits diretamente no código.
-
-Na prática, é tipicamente utilizado para inicializar registos de 16 bits (como o par `HL` ou o indexador `IX`) com um endereço de memória inicial. É também a fundação das instruções de salto absoluto, permitindo ditar ao processador o local exato da memória para onde este deve transferir a execução do código de seguida.
+A instrução contém um endereço de memória de 16 bits, entre parênteses. Os parênteses querem dizer "o conteúdo da memória nesse endereço".
 
 ```assembly
-    jp 0x8000         ; Salta diretamente para a posição fixa 0x8000
+    ld a,(23560)        ; A = byte guardado no endereço 23560.
+    ld (32000),a        ; guardar A no endereço 32000.
+    ld hl,(23606)       ; L = byte em 23606, H = byte em 23607.
 ```
 
-A instrução `JP` significa "Jump" (Saltar). O prefixo `0x` indica que o número fornecido está em formato hexadecimal. Assim, o comando diz de forma imperativa: "Abandona a execução na linha atual e salta de imediato para a posição de memória 0x8000, retomando a execução do código a partir desse ponto".
+Sem parênteses, `ld hl,23606` põe o **número** 23606 em `HL`; com parênteses, `ld hl,(23606)` põe em `HL` o **conteúdo** dos endereços 23606 e 23607. Os valores de 16 bits ficam na memória com o byte baixo primeiro (formato *little-endian*).
 
-### Modo Extendido ou Direto (Extended/Direct Addressing)
-
-Quando a nossa intenção não é carregar um número fixo, mas sim ir ler ou escrever num local específico da memória RAM, utilizamos o Modo Direto. Aqui, a instrução fornece um endereço de memória de 16 bits, sempre rodeado por parênteses matemáticos, como `(endereço)`.
-
-Devido à arquitetura do Z80, só é possível copiar valores da memória para os registos do processador e vice-versa. O processador não consegue fazer uma cópia direta de uma posição de memória para outra sem usar um registo como intermediário. Este modo é essencial para aceder a variáveis globais do programa ou para interagir de forma cirúrgica com o hardware do computador (como a placa de vídeo ou os atributos de cor), que se encontram mapeados em moradas fixas e conhecidas.
+O `JP` também usa um endereço de 16 bits, mas sem parênteses, porque não vai ler a memória: salta para lá.
 
 ```assembly
-    ld a, (0x4000)    ; Copia o valor contido na morada 0x4000 para o registo A
+    jp 32768            ; continuar a execução no endereço 32768.
 ```
 
-Neste contexto, os parênteses fazem toda a diferença. Se os omitíssemos, o processador tentaria guardar o número gigantesco `4000` no diminuto registo `A`, resultando num erro. Com os parênteses presentes, a instrução diz ao Z80: "Desloca-te fisicamente à célula de memória RAM com o número 0x4000, lê o byte que lá estiver guardado, e faz uma cópia do mesmo para o registo A".
+### Indireto por registo
 
-### Endereçamento Indireto por Registo (Register Indirect Addressing)
-
-No Endereçamento Indireto por Registo, o endereço de memória que pretendemos aceder não está fixo no código. Em vez disso, a morada encontra-se guardada de forma dinâmica dentro de um registo de 16 bits (geralmente o `HL`, `BC` ou `DE`). Mais uma vez, utilizam-se parênteses em torno do nome do registo.
-
-Esta é, indiscutivelmente, a melhor forma de percorrer grandes blocos de memória, arrays, strings de texto ou dados gráficos. Dentro de um ciclo de repetição, basta incrementar o registo (usando um simples `INC HL`) para que este passe a apontar para a morada do byte seguinte. Esta técnica mantém o código compilado excecionalmente limpo e curto.
+O endereço está num par de registos: `(HL)`, `(BC)` ou `(DE)`. É a forma natural de percorrer tabelas, textos e gráficos: basta incrementar o par para passar ao byte seguinte.
 
 ```assembly
-    ld hl, 0x5000     ; O par de registos HL recebe o valor 0x5000
-    ld a, (hl)        ; O A recebe o valor guardado na morada ditada por HL
+    ld hl,texto         ; HL aponta para o texto.
+    ld a,(hl)           ; A = primeiro carácter.
+    inc hl              ; HL aponta para o segundo.
 ```
 
-Imagine que o par de registos `HL` tem o valor 0x5000 guardado. A instrução `LD A, (HL)` ordena que o processador verifique a morada que o registo `HL` lhe indica (0x5000) e vá buscar o conteúdo alojado nesse espaço da RAM, copiando-o para o Acumulador. Se logo a seguir incrementarmos o `HL`, a próxima vez que esta instrução correr, o Z80 lerá a porta seguinte (0x5001). É através deste mecanismo elegante que os jogos processam a movimentação de dezenas de sprites no ecrã.
+Com `(HL)` o Z80 aceita qualquer registo de 8 bits (`ld b,(hl)`, `ld (hl),e`…) e até um valor imediato (`ld (hl),0`). Com `(BC)` e `(DE)` só aceita o acumulador: `ld a,(de)` existe, mas `ld b,(de)` não.
 
-### Endereçamento de Página Zero (Modified Page Zero / RST)
+### Indexado
 
-O Endereçamento de Página Zero é um atalho poderoso. Permite chamar diretamente um de oito endereços predefinidos e restritos da chamada "página zero" de memória (os primeiros 256 bytes da arquitetura). Isto é feito através de um comando especial chamado `RST`.
-
-No ZX Spectrum, a utilidade principal destes endereços é servir de porta de entrada rápida para rotinas muito complexas que já se encontram gravadas de fábrica na ROM (como rotinas matemáticas de pontuação ou impressão de caracteres no ecrã). A grande vantagem do `RST` é a drástica poupança de espaço e ganho de velocidade. Enquanto uma chamada regular a uma sub-rotina (`CALL`) consome três bytes de memória, o `RST` ocupa um único byte.
+O endereço é `IX` ou `IY` mais um deslocamento fixo, de −128 a +127. É útil quando `IX` aponta para o início de um registo de dados com vários campos, como as coordenadas e o estado de um inimigo.
 
 ```assembly
-    ld a, 0x48        ; Coloca o código da letra 'H' no Acumulador
-    rst 0x10          ; Chama a rotina da ROM para imprimir o 'H' na TV
+    ld ix,inimigo       ; IX aponta para os dados do inimigo.
+    ld a,(ix+0)         ; estado.
+    ld b,(ix+1)         ; linha.
+    ld c,(ix+2)         ; coluna.
 ```
 
-A instrução `RST` (Restart) atua como um salto condensado. A morada `0x10` (que corresponde ao decimal 16) é icónica no Spectrum. Sempre que um programa invoca o `RST 0x10`, o computador desperta as funções de vídeo da ROM, verifica qual o valor que o programador colocou no registo `A`, e desenha de forma instantânea esse carácter no ecrã com as cores certas. Este modo poupa a necessidade de ter de criar gráficos vetoriais complexos a partir do zero para imprimir texto simples.
+As instruções com `IX` e `IY` têm um byte de prefixo a mais e são mais lentas: `ld a,(ix+1)` gasta 19 ciclos de relógio (*T-states*), contra 7 de `ld a,(hl)`.
 
-### Endereçamento Relativo (Relative Addressing)
+### Relativo
 
-O Endereçamento Relativo é a alma das instruções de salto condicional (`JR`). Aqui, o destino do salto não é referenciado de forma estática com um número absoluto (como a morada `0x8005`). Pelo contrário, é estipulado indicando o número exato de passos e a direção que o processador deve seguir a partir da sua posição atual.
-
-Este modo permite saltos curtos, abrangendo uma distância de até 128 bytes para trás ou 127 bytes para a frente. É a base de qualquer ciclo de repetição apertado ou da lógica condicional de um jogo. Ocupa menos espaço na memória, resultando num código mais eficiente. Importa notar que se a distância do salto pretendido for superior a 127 bytes, o compilador irá gerar um erro, forçando o programador a substituir o salto relativo por um salto absoluto mais dispendioso (`JP`).
+Usado pelos saltos `jr` e `djnz`. Em vez de um endereço completo, a instrução guarda uma distância de −128 a +127 bytes a partir da instrução seguinte. Ocupa 2 bytes em vez dos 3 do `jp`. O assembler calcula a distância sozinho; se o destino estiver longe demais, dá erro e é preciso usar `jp`.
 
 ```assembly
-loop:                 ; Etiqueta que marca o início do ciclo
-    dec b             ; Subtrai 1 ao valor guardado no registo B
-    jr nz, loop       ; Se o valor não chegou a zero, salta para 'loop'
+    ld b,10
+ciclo:
+    ; ... fazer qualquer coisa 10 vezes ...
+    djnz ciclo          ; B = B - 1; se B não for 0, voltar a "ciclo".
 ```
 
-O comando `JR` significa "Jump Relative" (Salto Relativo), enquanto `NZ` é a condição matemática avaliada, significando "Non-Zero". Na prática, esta instrução obriga o processador a avaliar o último cálculo efetuado: se a subtração ao registo `B` não o deixou a zero, então o processador é forçado a regressar à linha marcada com a etiqueta 'loop' e repetir todo o processo. Esta é a forma natural de traduzir em Assembly os ciclos `while` ou `for` que encontramos nas linguagens de programação modernas.
+### Página zero (RST)
 
-### Endereçamento por Índice (Index Addressing)
-
-Para gerir estruturas de dados mais complexas, o Z80 oferece o Endereçamento por Índice. Este modo engloba um registo indexador dedicado (`IX` ou `IY`) aliado a um *offset* estático (uma diferença fixa de passos) definido pelo programador, como por exemplo `(IX+2)`.
-
-É o modo de excelência para lidar com objetos no contexto de videojogos. Se tivermos os dados de um inimigo estruturados na memória e soubermos que a sua "Vida" está guardada na base do objeto, e que as suas coordenadas X e Y estão guardadas nos dois bytes subsequentes, o registo indexador torna trivial o acesso a todos estes dados em simultâneo.
-Contudo, há uma penalização de desempenho a considerar. Como estes registos de índice foram uma adição tardia à arquitetura original do Z80, os seus opcodes necessitam de bytes extras de prefixo. Isto faz com que a execução através de `IX` ou `IY` seja consideravelmente mais morosa do que a mesma operação executada através do clássico endereçamento indireto via `HL`.
+`rst n` é uma chamada de 1 byte a um de oito endereços fixos no início da memória: 0, 8, 16, 24, 32, 40, 48 e 56. No Spectrum, esses endereços estão na ROM e têm rotinas úteis. A mais usada é `rst 16` (`$10`), que imprime o carácter que está em `A`:
 
 ```assembly
-    ld ix, 0x6000     ; O registo IX passa a apontar para a base do objeto
-    ld a, (ix+2)      ; O registo A recebe o dado que está na base + 2 passos
+    ld a,'H'            ; código ASCII de "H" (72).
+    rst 16              ; imprimi-lo no canal atual.
 ```
 
-Considerando o exemplo acima, se definirmos o endereço 0x6000 como o ponto de partida na RAM, a instrução final obriga o processador a deslocar-se mentalmente à porta apontada por `IX`, avançar duas posições e ir resgatar o valor armazenado na morada final (neste caso, na 0x6002), copiando-o de volta para o registo `A`.
+Um `call` ocupa 3 bytes; `rst` ocupa só 1.
 
-### Endereçamento de Bits (Bit Addressing)
+### Bit
 
-O grau de controlo mais minucioso que o Z80 nos proporciona é alcançado com o Endereçamento de Bits. Este modo permite ler, testar e forçar a alteração de um único bit individual (de 0 a 7) pertencente a um registo ou a uma posição na memória RAM, sem afetar a integridade do restante byte. As instruções centrais desta família são o `BIT`, `SET` e `RES`.
-
-Esta precisão microscópica é indispensável para comunicar diretamente com o hardware físico, processar sinalética binária muito concentrada ou alterar subtilmente valores na memória.
+As instruções `bit`, `set` e `res` testam, ligam e desligam um bit (0 a 7) de um registo ou de um byte na memória, sem mexer nos outros.
 
 ```assembly
-    res 5, (ix)       ; Apaga apenas o 5º bit desse byte
+    set 7,a             ; ligar o bit 7 de A.
+    res 5,(hl)          ; desligar o bit 5 do byte apontado por HL.
+    bit 0,c             ; testar o bit 0 de C: a flag Z fica a 1 se o bit for 0.
 ```
 
-A mnemónica `RES` traduz-se em "Reset", o que no vocabulário binário significa forçar o estado de algo a desligar-se, assumindo o valor numérico de zero. Na instrução de exemplo, o processador navega até à memória e localiza o 5º bit dentro desse byte (sendo que cada byte é numerado de 0 a 7). Ele obriga esse bit a assumir o valor de zero. De forma quase mágica, esta simples inversão binária tem aplicações dramáticas: se executarmos este comando sobre o código ASCII da letra minúscula "h" (cujo valor binário é 01101000), o apagamento do 5º bit fá-la transitar instantaneamente para a sua variante maiúscula "H" (cujo valor binário é 01001000).
+## Um Programa Completo
 
----
-
-## Modos "Não Oficiais"
-
-Para além da categorização estrita dos modos definidos nos manuais da Zilog, a comunidade de programadores aborda certas características da linguagem Assembly como modos independentes, de forma a facilitar a leitura da estrutura lógica do código.
-
-### Condições de Estado (Status Conditions)
-
-As Condições de Estado baseiam-se em bits de aviso (flags) residentes no painel de controlo interno do processador, tais como o bit de transporte ou erro *Carry* (`C` ou `NC`) e o bit sinalizador de *Zero* (`Z` ou `NZ`). Estas flags são frequentemente utilizadas como "condição matemática" no final de um salto ou chamada a uma rotina.
-Sem este mecanismo fundamental, o Z80 seria meramente uma máquina de calcular contínua. É a avaliação destas luzes de aviso que confere ao computador a capacidade vital de raciocinar logicamente e tomar decisões condicionalmente.
+Este programa usa quase todos os modos de endereçamento. Limpa o ecrã, imprime "hello" num ciclo com endereçamento indireto, pinta de vermelho os atributos dessa linha com endereçamento direto, transforma o "h" em "H" desligando o bit 5 com endereçamento indexado e imprime a palavra outra vez.
 
 ```assembly
-    add a, 200        ; Adiciona 200 ao valor atual do Acumulador
-    jp c, limite      ; Se a operação resultou num erro Carry, salta para a etiqueta 'limite'
-```
-
-Neste cenário prático, se o resultado de adicionar 200 ao valor pré-existente no Acumulador ultrapassar a barreira mecânica do registo de 8 bits (ou seja, superar 255), o processador aciona internamente um alarme chamado "Carry" (Vai-um). A instrução que se segue é um salto condicional: ela instrui o Z80 a verificar primeiro o estado desse alarme e, caso esteja ativo, saltar de imediato para a secção de código denominada "limite" com o intuito de tratar esse erro. Se a matemática não tiver resultado em excessos, a instrução ignora o salto pacificamente e prossegue para a linha de código seguinte.
-
-### Modos de Interrupção (Interrupt Modes - `IM`)
-
-Finalmente, existem os Modos de Interrupção, criados exclusivamente para lidar e priorizar os eventos de hardware.
-Na arquitetura complexa do ZX Spectrum, a norma é ativar o modo de interrupção clássico através do comando `IM 1`, delegando o tratamento das tarefas secundárias do computador à infraestrutura sólida que a ROM fornece. Contudo, em jogos dinâmicos, muitas vezes os criadores optam por recorrer ao versátil `IM 2`, que lhes concede a liberdade total de sobrepor as diretrizes do sistema com rotinas totalmente desenhadas à sua medida.
-
-```assembly
-    im 1              ; Dá instrução ao CPU para delegar interrupções à ROM
-```
-
-A título de exemplo prático, enquanto o processador se encontra focado em correr as mecânicas intensas de física do jogo, o ULA (o controlador do hardware de vídeo) envia um sinal elétrico - a Interrupção - para avisar o CPU que está na hora de desenhar um novo ecrã na televisão (sendo que num modelo PAL, este pulso é lançado 50 vezes a cada segundo). O comando `IM 1` garante que o processador acate estes "toques no ombro", pause com segurança a sua rotina atual, execute o minúsculo bloco de código pré-gravado na ROM que lida com as operações vitais do sistema e do ecrã e, sem sobressaltos, regresse de imediato ao ponto de partida. Graças a esta harmonia sistémica, o Spectrum é capaz de efetuar gestão de eventos no pano de fundo - como ler simultaneamente as respostas ao teclado sem interromper a fluidez gráfica do jogo principal.
-
----
-
-## Demonstração Prática: O "Hello World"
-
-O culminar da introdução ao endereçamento é conseguir visualizar todos estes mecanismos a trabalhar de forma conjunta. Para este fim, o programa "Hello World" serve perfeitamente para expor e solidificar o entendimento prático destas arquiteturas. O código apresentado abaixo utiliza a sintaxe moderna característica do compilador **sjasmplus**.
-
-### Código de Exemplo
-
-```assembly
-    device zxspectrum48
-    org 0x8000
-
-    jp start
-
-string:
-    db "hello"
-
-string_length equ 5
-rom_cls       equ 0x0daf
-color_attr    equ 0x5800
-enter         equ 0x0d
-black_white   equ 0x07   ; Tinta branca (7) em fundo negro (0)
-
+        DEVICE ZXSPECTRUM48
+        ORG 32768
 start:
-    im 1
-    call rom_cls
+string_length: equ 5
+rom_cls:       equ 3503     ; rotina da ROM: limpar o ecrã e abrir o canal 2.
 
-    ; --- 1ª Passagem: Imprime "hello" através de registo (HL) ---
-    ld hl, string
-    ld b, string_length
+    call rom_cls        ; chamada a um endereço fixo.
+
+    ; 1.ª passagem: imprimir "hello" com endereçamento indireto (HL).
+    ld hl,string        ; imediato de 16 bits.
+    ld b,string_length  ; imediato de 8 bits.
 loop:
-    ld a, (hl)
-    rst 0x10
+    ld a,(hl)           ; indireto por registo.
+    rst 16              ; página zero: imprimir A.
+    inc hl              ; registo.
+    djnz loop           ; relativo: repetir 5 vezes.
+
+    ld a,13             ; código de mudança de linha.
+    rst 16
+
+    ; Pintar a primeira linha do ecrã: papel vermelho, tinta branca.
+    ld a,2*8+7          ; papel 2 (vermelho), tinta 7 (branco).
+    ld hl,22528         ; endereço do primeiro atributo.
+    ld b,32             ; 32 colunas.
+pinta:
+    ld (hl),a           ; indireto: escrever o atributo.
     inc hl
-    dec b
-    jr nz, loop
+    djnz pinta
 
-    ; Inserção de uma mudança de linha
-    ld a, enter
-    rst 0x10
+    ; Passar o "h" a maiúscula com endereçamento indexado e de bit.
+    ld ix,string
+    res 5,(ix+0)        ; "h" = %01101000 -> "H" = %01001000.
 
-    ; --- Manipulação Cirúrgica dos Atributos de Cor ---
-    ld a, black_white
-    ld (color_attr), a
+    ; 2.ª passagem: imprimir com endereçamento indexado.
+    ld a,(ix+0)
+    rst 16
+    ld a,(ix+1)
+    rst 16
+    ld a,(ix+2)
+    rst 16
+    ld a,(ix+3)
+    rst 16
+    ld a,(ix+4)
+    rst 16
+    ld a,13
+    rst 16
+    ret                 ; implícito: voltar ao BASIC.
 
-    ; --- Interação Bit a Bit em conjunto com Endereçamento por Índice ---
-    ld ix, string
-    res 5, (ix)
+string: defb "hello"
+fim:
 
-    ; --- 2ª Passagem: Imprime a variante "Hello" num loop desdobrado ---
-    ld a, (ix+0)
-    rst 0x10
-    ld a, (ix+1)
-    rst 0x10
-    ld a, (ix+2)
-    rst 0x10
-    ld a, (ix+3)
-    rst 0x10
-    ld a, (ix+4)
-    rst 0x10
-
-    ; Finalização com quebra de linha
-    ld a, enter
-    rst 0x10
-
-    ret
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_01_1.tap"
+        SAVETAP  "z80_01_1.tap",BASIC,"z80_01_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_01_1.tap",CODE,"z80_01_1",start,fim-start
 ```
 
-### Análise da Execução
+Ao correr, aparece "hello" sobre fundo vermelho na primeira linha e "Hello" na segunda. Repare em três pormenores:
 
-A leitura sequencial do programa revela claramente como as diretivas do programador se transmutam nos modos de endereçamento abordados.
+* `rom_cls: equ 3503` não gera código: dá apenas um nome ao número 3503. É boa prática dar nomes aos endereços da ROM e às constantes.
+* A diferença entre maiúsculas e minúsculas em ASCII é exatamente o bit 5 (valor 32): "a" = 97 e "A" = 65. Por isso `res 5` passa uma letra a maiúscula e `set 5` a minúscula.
+* A rotina 3503 deixa o canal 2 (ecrã superior) aberto, e é por isso que o `rst 16` escreve no ecrã sem mais preparação.
 
-Começando pela cabeceria estrutural, a instrução de iniciação recorre de imediato ao **Endereçamento Imediato Extendido**. Uma vez que os dados ultrapassam raramente as barreiras dos 127 bytes locais, seria possível recorrer a um singelo `JR start` (Endereçamento Relativo) para tentar poupar preciosos bytes, mas a escolha recai sobre o robusto `JP` absoluto por precaução arquitetural. Paralelamente, os rótulos pseudo-operativos `equ` funcionam como pilares fundamentais de clareza, definindo constantes mágicas como a morada base de limpeza de ecrã (`0x0daf`) ou os atributos dedicados da matriz de cores (`0x5800`).
+## Exercícios
 
-Quando entra no cerne da rotina (`start:`), o código recorre primeiramente ao Modos de Interrupção 1 para assegurar que o hardware de vídeo subjacente não interfere desnecessariamente, prosseguindo para um **Endereçamento Imediato Extendido** (na forma de `call rom_cls`) que limpa incondicionalmente o quadro visível. Esta invocação remota à rotina principal da ROM culmina no retorno intrínseco, que devolve o controlo ao jogo.
-
-Ao tentar exibir o texto no ecrã pela primeira vez, entramos numa confluência de múltiplos mecanismos clássicos do Z80. Um **Endereçamento de Registo** embutido inicializa o par base `HL` num compasso com o **Endereçamento Imediato** utilizado para o iterador. A grande magia revela-se quando acionamos o **Endereçamento Indireto por Registo** (`ld a, (hl)`) no interior de um pequeno ciclo, alimentando byte a byte as letras sucessivas do texto para o Acumulador central, num circuito constante de escrita, avanço indexado, decremento e um **Endereçamento Relativo** de verificação de fim de ciclo. De seguida, usamos a morada de ROM `0x10` com Endereçamento de Página Zero para delegar de forma eficaz a tarefa complexa de impressão efetiva do pixel para o processador do ecrã.
-
-Para interagir com o ambiente colorido, alteramos as regras do tabuleiro usando o **Endereçamento Direto** `ld (color_attr), a`, que nos permite enviar o formato cromático previamente calculado (tinta branca numa grelha de fundo obscura, cifrado no código hexadecimal `0x07`) para a coordenada rígida de memória gráfica que abarca as fundações da nossa primeira impressão textual, virando visualmente os blocos cinzas para brancos vívidos.
-
-Numa demonstração virtuosa de manipulação da informação bruta, unimos o **Endereçamento por Índice** e o **Endereçamento de Bits** para provar que a letra 'h' inicial pode sofrer uma inversão morfológica, sendo dissecada microscopicamente e tendo um dos seus bits chaves desligado num instante fugaz, regressando à existência como a letra capitular maiúscula sem sequer perturbar as suas vogais contíguas. 
-
-O remate do programa consiste em expor os pormenores do próprio índice. Utilizando o método do **Loop Desdobrado**, acedemos manualmente aos bytes indexados subsequentes invocando saltos fixos (`ix+0`, `ix+1`), ilustrando eximiamente a versatilidade que uma simples diferença matemática associada ao endereçamento pode propiciar. Este percurso iterativo sem paragens poupa efetivamente tempo num cenário em que a iteração programática (`loop`) seria consideravelmente penalizada em matéria de velocidade de execução. Como seria de esperar em programas íntegros e eficientes, encerra silenciosamente com uma instrução de Modo Implícito sob a forma graciosa de um `ret`.
+1. Mude o programa para imprimir o seu nome (sem acentos) e pintar a linha de azul (papel 1).
+2. Substitua as cinco instruções `ld a,(ix+n)` / `rst 16` da segunda passagem por um ciclo com `djnz`.
+3. Porque é que `ld a,(hl)` funciona, mas `ld (hl),(de)` não existe? (Pista: veja o capítulo seguinte.)

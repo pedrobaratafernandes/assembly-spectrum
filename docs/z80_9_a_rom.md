@@ -1,52 +1,140 @@
-# O Sistema Operativo: A ROM (ZX Spectrum)
+# A ROM e as Variáveis de Sistema
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. No decurso da nossa jornada abandonamos por momentos o laboratório de circuito puro centrado na pastilha matemática do processador para finalmente ancorarmos na máquina de jogos tangível que todos idolatram: a arquitetura do famigerado ZX Spectrum e o imenso pântano dos seus 16 KB de memórias proibitivas.
+Os primeiros 16 KB da memória do Spectrum (endereços 0 a 16383) são ROM: memória só de leitura, gravada de fábrica. Contém o interpretador de BASIC e todas as rotinas de que ele precisa: imprimir, ler o teclado, fazer som, calcular, gravar e carregar cassetes. Um programa em assembly pode chamar estas rotinas com `call`, e poupar muito trabalho.
 
-## O Mapa da Memória e a Terra Proibida
+## As Rotinas RST
 
-Do ponto de vista global, o ZX Spectrum modelado na sua génese clássica reivindica uma vasta grelha de 64 KB de espaço de moradas eletrónicas totalmente endereçáveis pelo processador (estendendo-se do ponto gélido de `0x0000` aos horizontes do `0xFFFF`). É indubitavelmente perante este colosso de capacidade que assenta o brilhantismo do projeto, mas existe um compromisso férreo estabelecido nas fábricas de fundição na fundação destas máquinas: o primeiro grande patamar da memória ostenta um silício chumbado e inquebrantável. Estritamente cingida desde o limiar do logradouro `0x0000` até à fronteira demarcada do `0x3FFF` (perfazendo exatos 16 KB no seu cômputo) jaz a mítica **ROM** (Read-Only Memory).
-Isto traduz fisicamente uma região sagrada; a escrita caprichosa por parte do processador é impiedosamente vetada perante portas trancadas a fogo. Apenas a leitura dócil destas tábuas graníticas é consentida e ativamente encorajada no seio das diretrizes originais.
+As instruções `rst` chamam oito endereços fixos no início da ROM. Os mais úteis são:
 
-Mergulhando no âmago desta terra intocável, o que dormita nestes vales perenes? 
-A encarnação do intérprete moroso que traduz com esforço as linhas esparsas do Sinclair BASIC; o leque extensivo de sub-rotinas e chaves de auxílio balizadas nas portas ágeis do sistema (as famosas funções de "Restart"); a catalogação e repositório de mensagens lacónicas e traumáticas cunhadas no consciente coletivo de uma geração de ecrãs piscantes (com especial ênfase para o aterrorizante e fatal "R Tape loading error, 0:1"); e perante o deleite gráfico a ROM consagra no seu panteão as fundações de tipografia: toda a glória visual condensada no desenho pixelizado que perfila as letras do teclado de matriz, traçando a curva dócil do espaço oco do `0x20` perante o abismo gótico e esotericamente final que pontifica e ilustra a espiral de Copyright assente no teto intocável do `0x7F`.
+| Instrução | Endereço | Função |
+| :--- | :--- | :--- |
+| `rst 0` | 0 | Reinicia o Spectrum (como desligar e ligar). |
+| `rst 8` | 8 | Assinala um erro do BASIC. O byte a seguir ao `rst 8` é o número do erro. |
+| `rst 16` | 16 (`$10`) | Imprime o carácter que está em `A` no canal atual. |
+| `rst 40` | 40 (`$28`) | Entra na calculadora de vírgula flutuante da ROM. |
+| `rst 56` | 56 (`$38`) | Rotina de interrupção: lê o teclado e atualiza o relógio. |
 
-## O Menu Célere de Serviços Nativos
+## Rotinas Úteis da ROM
 
-No prelúdio desta litania fomos presenteados com as maravilhas singulares e os atalhos ágeis alocados unicamente às restrições embutidas no desígnio matricial duma mnemónica especial: os comandos englobados sob o fardo das instruções de `RST` (Restart). Com efeito, transmutam-se como catapultas ultra-rápidas para as vizinhanças profundas que se erguem no solo sagrado demarcado perante as pedras de origem baseadas nas franjas do "Page Zero" da ROM primogénita. Invocadas cirurgicamente, poupam o artífice da escravidão mecânica inerente de calcar e recriar infinitamente o reajuste sistemático de rotinas matemáticas morosas já consagradas pelo engenho humano primevo da fundação.
+Estas são as rotinas usadas ao longo do livro:
 
-Entre estes guardiões intocáveis pontifica a pureza destrutiva do `RST 0`. No limiar dum choque frontal com esta valência, todas as fundações abatem na reinicialização colossal e total do ZX Spectrum. Varre-se ao oblívio a amálgama transata das linhas, ressuscitando a máquina à tela intocada e ofuscante do papel em branco carimbada sem remorsos pelas leais e inóspitas efígies cravadas no nome fidedigno ditado ao copyright inaugural. O esgoto cínico do `RST 8` resvala as entranhas na evocação trágica atirando no ecrã de vislumbre imediato os estertores das mensagens imaculadas do sistema que desatam aos brados em litanias e códigos sombrios anunciadores dos calvários de erro absoluto. A fidalguia majestosa encontra a sua glória na invocação milagreira e popular do `RST 10`; entroncando por preceitos diletos a simples aposição isolada duma chave tipográfica pura no nosso peito orgulhoso balizado no Acumulador e entregue no altar perante o desígnio cego subjacente aos mistérios deste chamamento `10`. Sub-repticiamente encarregue, a ROM desvenda o poço cego arcano sem exaurir forças do programador na matemática dos píxeis vertendo instantaneamente na matriz luminescente da tela o rabisco exato exigido no molde e traçado natural dos contornos duma letra sem hesitações de caligrafia. 
-Não obstante estes gigantes nativos a escuridão mística perpetua resguardando religiosamente sob as traves do inusitado `RST 28` a calculadora flutuante hermética e esquecida: um portento impulsionador duma sub rotina monstruosa cravada sob as regras obscuras dos trilhos de matemática pura em "Ponto Flutuante" e alimentada ao vapor num fornos de lenha através duma base matricial da "Pilha" - providenciando de feição cega sem pejo assombrosos bailados matemáticos perfeitamente dotados duma exímia propensão ao manuseamento magistral sob cálculos complexos trigonométricos puros ao desbrave imaculado assente perante raízes colossais quadradas que evitam o desgaste imensurável perante o programador que deseje mergulhar a solo nestas rotinas impiedosas na crueza nativa de zeros e uns cravados por blocos limitados ao universo castrador e acanhado perante as grelhas redutoras das fronteiras em Hexadecimal dum oitavo algarismo limitativo de restrição estática num puro e infeliz bloco linear do processador da Zilog. 
+| Endereço | Nome | O que faz |
+| :--- | :--- | :--- |
+| 949 | BEEPER | Toca uma nota: `HL` = tom, `DE` = duração. |
+| 3503 | CL-ALL | Limpa o ecrã com as cores de `ATTR-P` e abre o canal 2. |
+| 5633 | CHAN-OPEN | Abre o canal indicado em `A` (1 = parte de baixo do ecrã, 2 = ecrã principal, 3 = impressora). |
+| 6683 | OUT-NUM-1 | Imprime o número em `BC` (até 9999). |
+| 8252 | PR-STRING | Imprime `BC` caracteres a partir do endereço `DE`. |
+| 8859 | BORDER | Muda a cor da margem para `A` (de forma permanente). |
+| 11563 | STACK-BC | Põe `BC` na pilha da calculadora. |
+| 11747 | PRINT-FP | Imprime o número do topo da pilha da calculadora. |
 
-Por via incontornável os portões mecânicos orlam-se encerrados com o regente `RST 38`. Uma rotina mestre orquestrada a bater no abismo dos compassos por via mecânica e impessoal descarregada 50 vezes num inquebrável sopro volátil numa submissão acicatada sem contemplações aos esgares e solavancos da cadência do sinal catódico encarregue duma modesta televisão que repousava adormecida numa parede fria. Esta rotina desdobra-se exaustivamente na inquirição sub-reptícia aos sensores periféricos do teclado descarregando por corolário natural na abóbada vital incrustada no seio pulsante temporal interno de um imenso estuque burocrático conhecido universalmente por System Variables.
+## As Variáveis de Sistema
 
-## A Submissão ao Ócio e as Leitura Diretivas
+Entre os endereços 23552 e 23733 ficam as **variáveis de sistema**: os valores de que a ROM precisa para funcionar. Lendo-as e alterando-as, controlamos o comportamento da ROM. As mais úteis:
 
-O manuseio direto do pórtico e das trancas elétricas embutidas nos portões da "I/O" via calçada rústica confere ao artífice a destreza veloz inerente à auscultação mecânica impessoal. Porém tal maestria acarreta no desvendar estrito a decifração incansável na gestão solitária face às moradas infindas na exploração cega do Teclado. Sob a indulgência condescendente subjacente do intérprete residente em ROM de antemão exausto nesta perseguição na sua jornada imposta base do labor de varrimento do BASIC, surge a rendição pragmática na adoção cínica de alianças e facilidades inerentes a uma chamada delegada perante funções adormecidas numa caixa preta já resolvida à sua responsabilidade. 
+| Endereço | Nome | Conteúdo |
+| :--- | :--- | :--- |
+| 23560 | LAST-K | Código da última tecla premida (atualizado pela interrupção). |
+| 23606 | CHARS | Endereço da fonte de letras menos 256. |
+| 23611 | FLAGS | O bit 5 fica a 1 quando há uma tecla nova em `LAST-K`. |
+| 23624 | BORDCR | Cor da margem (e da parte de baixo do ecrã). |
+| 23672 | FRAMES | Contador de fotogramas de 3 bytes, aumenta 50 vezes por segundo. |
+| 23675 | UDG | Endereço dos gráficos definidos pelo utilizador. |
+| 23693 | ATTR-P | Cores permanentes. |
+| 23695 | ATTR-T | Cores temporárias (usadas pela próxima impressão). |
 
-A ROM sublinha uma benesse prodigiosa através de portais invocados sob os dogmas do `CALL`:
-Através das portas exatas do `CALL 0x02BF`, reanima-se o varrimento adormecido que rasga o Hardware periférico arrancando as entranhas às chaves e derramando cega as impressões nos domínios lamacentos encastrados nas masmorras das moradas RAM. Num degrau contínuo subsequente ancoramos no pilar ditado de `CALL 0x10A8`. Ela esquadrinha meticulosamente o lixo do varrimento pregresso recolhido anteriormente arrebatando perante os domínios da exatidão a tecla suprema principal acabada de tombar sob os dedos calosos duma mão humana, expelindo categoricamente com precisão um caráter perfeitamente cozinhado em modo ASCII imaculado espetado ao arrepio na majestosa prateleira intocável reservada do centro magnético imbuído dentro das paredes intocadas duma valência que coroa inteira no nosso Acumulador (`A`). 
+A ROM aponta o registo `IY` para 23610, e a partir daí chega às variáveis com `(iy+n)`. Por exemplo, `FLAGS` é `(iy+1)`.
 
-E por artes do acaso desprovido, caso a mão abrutalhada dum exaurido e transato utente perante uma força indómita repouse de punho fechado na tecla recém premida num ato contínuo, a dita rotina coroa por via de um trunfo colateral espetando silenciosamente cravada luminosamente sem hesitações perante uma acendida brutal a impiedosa chama do Carry: atestando tacitamente em aviso prévio o embate continuado!
+## Ler o Teclado com a ROM
+
+Enquanto as interrupções estiverem em modo 1, a ROM lê o teclado 50 vezes por segundo. Quando deteta uma tecla nova, guarda o código em `LAST-K` e liga o bit 5 de `FLAGS`. Esperar por uma tecla fica assim:
 
 ```assembly
-  esperar_tecla:
-    call 0x02BF       ; Varredura magnética global do hardware
-    call 0x10A8       ; A ROM lança aos braços do Acumulador a dádiva da Letra tocada
-    
-    jr nc, esperar_tecla  ; Caso o manto das trevas cubra o Carry sem chamadas afirmativas de vida e toque de ação, perdemo-nos no limbo num transe rodopiante a aguardar na alvorada
-    
-    rst 10            ; Quebrando a estática inebriante do ócio; de posse gloriosa dos ASCII, invocamos um desfecho na matriz cravando estáticos no ecrã o testemunho de caligrafia num feixe catódico impessoal!
+espera_tecla:
+    res 5,(iy+1)        ; FLAGS: "ainda não há tecla nova".
+espera0:
+    bit 5,(iy+1)        ; já há?
+    jr z,espera0        ; não, continuar à espera.
+    ld a,(23560)        ; LAST-K: código da tecla.
+    ret
 ```
 
-## Prós, Contras e a Empregada Doméstica Metódica
+Este método é ótimo para menus e para escrever nomes, mas só deteta uma tecla de cada vez e com o atraso de repetição do teclado. Para jogos, lê-se o teclado diretamente pelas portas (capítulo 7).
 
-Enveredar pelos portais sumptuosos na subserviência e dádivas ocultas residentes da ROM revela-se de início um éden inigualável; atavia na perfeição duma almofada espessa e suave a poupança avassaladora consubstanciada nos proveitos incontornáveis dum exército cego que enceta o embate esboroando tarefas medonhas e extenuantes sem pestanejar e poupando na estribeira sem remendos as cruéis, morosas e sangrentas labutas dos dias gastos solitários da vigília sem consolo num ermo incansável de linhas tecidas rudimentarmente numa folha num esforço cru em código de base pura do Assembly. Esta servidão mágica desvela um recuo acintoso e incompreendido aquando dum despontar de engenharia suprema por força de videojogos colossais arremessados pelos bastidores dos cartéis de editores profissionais que desferiram a negação iminente dum tabu proibitivo. 
+## Vantagens e Cuidados
 
-Esta aparente abnegação à dádiva exprime perfeitamente a índole e o preço colateral imbuído no custo oculto. A ROM é, sob muitos prismas da rotina programática rudimentar caseira, o equivalente estrito à lufa-lufa esmagadora duma pacata governanta doméstica exímia que encosta em perfeição e alinhamento milimétrico limpezas cirúrgicas extenuantes num escrutínio implacável a recolhas caóticas atiradas no chão dum Teclado confuso; perante a benevolência e maestria espetada da impressão exata numa tipografia na parede impessoal da TV ela arrasta e padece crônica das artroses duma letargia pesada numa idade tardia arrastando inexoravelmente de muletas o processo na marcha sem proveito de piques exatos. 
-Acresce e esbate num sacrifício doloroso de ramificações castradoras pela exigência arrogante num foro egoísta de ditame unilateral com o descaramento intragável dum despejo e esbulho territorial inegociável apoderando-se na intocável alçada perante os recintos encastrados assentes entre a cobiçada RAM situada entre confins fixos do endereço balizado do célebre quarteirão da freguesia na latitude demarcada no limite sagrado e imaculado ditado como a prateleira inviolável da `0x5B00` a quem usurpou com ditadura ferrenha no alojamento imperial da casa e prateleiras base das famigeradas e indissociáveis "System Variables". No rol de atrocidades das suas rotinas metódicas enraíza a predisposição insidiosa fatal em abalroar no ímpeto sem remorsos perante arrumações surdas e colapsos silenciosos o abate indiscriminado na purga acossada varrendo e pulverizando caoticamente a espinha dorsal assente em conteúdos e valores essenciais cravados preciosamente num reduto secundário alternativo imaculado pelo artífice nos registo paralelos `HL'` bem como arrastando na aniquilação a totalidade valências perenes alojadas na cabine do Registo de Índice vetorial `IY` que colapsam desamparados no limbo nas margens exatas na estonteante rotina final! Eximir o perigo e deixar esquecidos despojos valiosos em desuso de valores nos recheios intatos antes destas investidas impensadas conduz e esfrangalha irredutivelmente sem glória alguma e fatalmente num bloqueio cego perante uma parede e colapso castrador a aniquilação trágica ditada na hecatombe letal irreversível no cego Crash do colapso no motor geral!
+Usar a ROM poupa muito trabalho, mas tem custos:
 
-Como reflexo sumário ressoa irrecusável:
-A lentidão intrínseca na leitura pacata que encandeia cegamente uma tecla exclusiva num mar isolado descarta e proíbe peremptoriamente manuseamentos acrobáticos e embates caóticos cruzando comandos exaustivos múltiplos requeridos numa ação síncrona estroboscópica perante velocidades imperiosas dum embate cruzado exigente da cadência temporal de arco em videojogos colossais exigindo estonteantes e fulminantes reflexões.
-Custeia sem apelo territorial o esbulho sumário duma porção generosa nas faixas das System Variables amarradas inegociáveis à RAM usurpada condicionando margens de segurança na livre folga no desenho limpo de memória.
-Arrasta como mutilador crónico letal destruições irrecusáveis dos repositórios intocáveis do indexante `IY` bem como o colapso e esbulho dos abrigos confinados na orla secreta ditada nos gavetões de reserva nos paralelos da base Alternativa ditada `HL'` numa investida avassaladora inebriada perante a roda dentada rotativa de relógio imperiosa balizada no `RST 38` do temporizador intemporal das invocações fixas ou de rotinas singelas do sistema esporádicas.
-Adicionalmente e desfecho inglório de atrevimentos e atalhos cravados cirurgicamente nos chamamentos via invocação balizada na premissa impiedosa dum chamamento direto dum mero número impiedoso e cego ("hardcoded"), embate implacavelmente como fatal nas maldições imiscuídas nos corrompidos clones exóticos ditados com a alcunha popular transatlântica dum famigerado clone profano (imposto sob a forma Timex Sinclair americano) esboroando a coerência e rebentando no abismo letal dada a mutação infame duma engenharia reversa que usurpou imperiosamente toda a cartografia ditando aos compêndios pátrios novas rotinas assentes desavindas num desalinhamento das cabines da matemática mudando e castrando moradas que encravam em definitivo a base pura na desvinculação absoluta entre irmãos bastardos não oficiais na saga das lendas dos zeros originais ingleses puros forjados.
+* **É lenta.** As rotinas da ROM foram escritas para o BASIC, a pensar em poupar espaço e não em velocidade. Imprimir com `rst 16` serve para menus e pontuações, mas não para mover gráficos a 50 fotogramas por segundo.
+* **Precisa das variáveis de sistema.** Um programa que use a área de 23552 a 23733 para outra coisa não pode chamar a ROM.
+* **Precisa de `IY`.** Se o programa alterar `IY`, tem de o repor (23610) antes de chamar a ROM, e as interrupções em modo 1 também o usam. Para voltar ao BASIC, `HL'` também tem de estar como estava no início.
+* **Altera registos.** As rotinas da ROM mudam vários registos sem avisar. Guarde na pilha o que precisar.
+* **Só funciona com esta ROM.** Os endereços são os da ROM do Spectrum 48K, que se mantêm iguais nos modelos 128K (quando a ROM do 48K está ativa). Clones com ROMs diferentes, como o Timex TC2068, mudam alguns endereços.
+
+## Um Programa Completo
+
+Este programa pede uma tecla e mostra o código dela, usando `LAST-K`/`FLAGS`, a rotina de impressão de números e a rotina `BEEPER`. Repete até se carregar em ENTER.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+ciclo:
+    ld de,msg           ; "Tecla: "
+    ld bc,msgfim-msg
+    call 8252
+    call espera_tecla   ; A = código da tecla.
+    push af
+    cp 32               ; carácter imprimível?
+    jr c,naoimp         ; não (por exemplo, ENTER = 13).
+    rst 16              ; mostrar a tecla.
+naoimp:
+    ld a,' '
+    rst 16
+    pop af
+    push af
+    ld b,0              ; mostrar o código.
+    ld c,a
+    call 6683
+    ld a,13
+    rst 16
+    ld hl,800           ; um bip curto.
+    ld de,20
+    call 949
+    pop af
+    cp 13               ; ENTER?
+    jr nz,ciclo
+    ret
+
+espera_tecla:
+    res 5,(iy+1)        ; FLAGS: "ainda não há tecla nova".
+espera0:
+    bit 5,(iy+1)        ; já há?
+    jr z,espera0        ; não, continuar à espera.
+    ld a,(23560)        ; LAST-K: código da tecla.
+    ret
+
+msg:    defb "Tecla: "
+msgfim:
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_09_1.tap"
+        SAVETAP  "z80_09_1.tap",BASIC,"z80_09_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_09_1.tap",CODE,"z80_09_1",start,fim-start
+```
+
+Ao carregar em A aparece `Tecla: a 97`. Os códigos abaixo de 32 não são carateres imprimíveis e por isso só se mostra o número: em ENTER aparece `Tecla:  13` e o programa termina.
+
+## Exercícios
+
+1. Altere o programa para tocar uma nota diferente para cada tecla (por exemplo, usando o código da tecla para calcular o tom).
+2. Mostre o valor de `FRAMES` (só os dois primeiros bytes) cada vez que se carrega numa tecla.
+3. O que acontece se fizer `ld iy,0` no início do programa? Experimente no emulador.

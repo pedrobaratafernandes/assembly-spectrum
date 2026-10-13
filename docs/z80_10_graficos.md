@@ -1,55 +1,261 @@
-# Gráficos no ZX Spectrum: Bem-vindo à Matriz
+# Gráficos no ZX Spectrum
 
-Este documento aborda o tema de **Assembly Z80 para o ZX Spectrum**. A exploração incide doravante nas engrenagens obscuras e bizarras da placa gráfica nativa do Spectrum. O escrutínio revela as exigentes acrobacias mentais intrincadas e estonteantes impostas a um artífice para a singela tarefa de cravar a fogo um rudimentar pixel estático nos ecrãs dum velho televisor de sala.
+O ecrã do Spectrum tem 256 × 192 píxeis e é guardado em duas zonas da memória: uma para os píxeis e outra para as cores. Este capítulo mostra como estão organizadas e as três formas principais de desenhar: com caracteres, com píxeis e com imagens completas.
 
-O Spectrum oferece três caminhos divergentes perante a missão do grafismo pictórico, desdobrando-se por graus acentuados de letargia mecânica em contraste perante agilidades vertiginosas sob redutos colossais da complexidade de endereço.
+## A Memória do Ecrã
 
-## O Refúgio Inicial: Os Gráficos de Bloco e os UDGs
+| Zona | Endereços | Tamanho | Conteúdo |
+| :--- | :--- | :--- | :--- |
+| Píxeis (*bitmap*) | 16384 – 22527 | 6144 bytes | 1 bit por píxel: 1 = tinta, 0 = papel. Cada byte são 8 píxeis seguidos na horizontal. |
+| Atributos | 22528 – 23295 | 768 bytes | 1 byte de cor por cada célula de 8 × 8 píxeis (32 colunas × 24 linhas). |
 
-A via mais inofensiva num projeto embrionário que exige a génese plástica dum protagonista singular escora-se nas âncoras providenciadas nativamente pela ROM encastrada com as ferramentas do teclado e da tipografia vetorial.
+### Os atributos
 
-O primeiro degrau recai nos Gráficos puros do traçado 2x2, cravados intrinsecamente na máquina (via os Códigos Hexadecimais balizados na franja restrita do `0x80` perante o `0x8F`). Desprovidos de complexidade geométrica superior, afigura-se premente incrustar estas fatias recorrendo ao auxílio imperioso assente nas valências nativas (como a invocação ágil sob o `RST 10` que se decifrou no capítulo da ROM). O resultado materializa-se estampando blocos vetoriais góticos que repousavam fisicamente inscritos nos plásticos duros do teclado superior do computador entre as teclas do número 1 a 8. Embora assumam por desespero o porte encorpado dum aglomerado de píxeis enrijecidos sem graciosidade em blocos cerrados obedientes e colados sempre perante as cores vigentes declaradas pelas canetas da Tinta (Ink) e do Fundo (Paper) central, providenciam alicerces indispensáveis cravando cenários geométricos estáticos, molduras maciças e grelhas rudimentares.
+Cada byte de atributo define as cores de um quadrado de 8 × 8 píxeis:
 
-No reduto vizinho repousa a magia encantatória apelidada de UDGs (User Defined Graphics). Constitui-se aqui o berço sagrado do fabrico manual da entidade dum herói de ação (Sprites rudimentares). A benevolência inusitada da máquina e do intérprete do Spectrum consentiu a abdicação intencional sacrificando o desenho matriz ditado perante vinte e uma letras cravadas do alfabeto nativo (confinadas a varrer da letra A a U) cedendo a posse plena para molde livre perante o livre-arbítrio das vontades humanas singulares dos novos desenhadores gráficos. A amálgama da tal "memória RAM" cedida e esvaziada a ser habitada pelas encarnações profanas das vinte e uma letras confina-se encostada nos últimos metros do logradouro das memórias da RAM principal alojadas e abertas logo aquém dos endereços do limite base inicial contíguo no preceito ditado em `0xFF58`.
-O fabrico puro desta vida provém duma técnica metódica isenta de secretismos esotéricos: na intenção de moldar do zero os limites da fuselagem duma nave estelar, compete forjar na base matemática a construção dos blocos usando eximiamente a transmutação natural ditada num vulgar `LDIR`, varrendo duma assentada oitenta bits perfeitos perfazendo a quantia de exatos 8 Bytes estipulados originariamente numa reserva e forçá-los despudoradamente emparedados sob as pedras do endereço central do `0xFF58`. Culminado o assalto mecânico, quando forçarem no comando matriz a dita instrução da impressão singela e dócil para evocar o chamamento do clássico caráter afeto originalmente à letra "A" (com recurso exímio encastrado sob a sub-rotina do `RST 10` no trâmite perante o código numérico hexadecimal focado em `0x90`), deflagra nos fósforos catódicos perante os espetadores absortos as formas arrojadas desenhadas aos píxeis isolados duma belonave em blocos perfeitos de 8x8.
+| Bits | Significado |
+| :--- | :--- |
+| 0 – 2 | Tinta (0 a 7): preto, azul, vermelho, magenta, verde, ciano, amarelo, branco. |
+| 3 – 5 | Papel (0 a 7), nas mesmas cores. |
+| 6 | Brilho (1 = cores mais vivas). |
+| 7 | *Flash* (1 = tinta e papel trocam de lugar, duas vezes por segundo). |
 
-## O Calvário Singular Perante o Inferno do Bitmap
+Ou seja, atributo = tinta + papel × 8 + 64 (se brilhante) + 128 (se *flash*). Os atributos estão por ordem, linha a linha: o endereço da célula na linha `l` (0-23) e coluna `c` (0-31) é `22528 + l × 32 + c`.
 
-Os videojogos nativos que impulsionam os limites vertiginosos e almejam a glória comercial apartam e repudiam a via humilhante da impressão plácida de caracteres cravados nas ROM. Estes engenhos abraçam a caneta ligando cirurgicamente os fios eletrónicos da placa e pincelando diretamente sobre a matriz cega da grelha de ecrãs do tubo catódico. A morada desta terra mítica que repousa desimpedida assenta as fundações assentes imperiosamente de início baseadas logo na margem do afamado `0x4000` (encerrando a grelha em 6144 bytes perfeitamente confinados à arte pura do escopo dedicado).
+Como cada quadrado de 8 × 8 só tem duas cores (tinta e papel), quando um objeto colorido passa por cima de outro, as cores de um "contaminam" o outro. É o famoso *colour clash* do Spectrum, e é por isso que tantos jogos usam *sprites* de uma só cor, ou um fundo preto.
 
-Qualquer principiante num primeiro embate presume a analogia estrita num quadro humano onde derramar bytes lineares e consecutivos sequenciais forçaria a televisão a pintar uma linha num extremo absoluto ditado e contíguo numa obediência perfeita descendo metodicamente para o alicerce vizinho subjacente. A verdade encerra as agruras nefastas duma amálgama infernal. A geometria na grelha estatuída do modesto Spectrum está dolorosamente enredada entrelaçando blocos exímios num espasmo para mitigar no passado os estrondosos défices provocados perante custos de fundição com hardware nativo auxiliar inexistente na década do nascimento. Remata então que perante o termo exato na pintura linear cega da topologia horizontal confinada do topo originário absoluto da moldura do limite de teto, a morada seguinte atira e resvala abruptamente com impiedosa força arrastando as linhas ignorando as sete calhas perante o despenhadeiro espetando com violência desmedida na dita Linha 8, bem longe do encalce do vizinho adjacente originário em atraso contíguo no limiar transato na margem da Linha 1 relegada transitoriamente num remetimento ao esquecimento. Manifesta-se a magia por trás da cortina num vislumbre que espelha exatamente a catarse saudosa originária vivida coletivamente pelas infâncias quando a agonia ensurdecedora das velhas e pesadas cassetes carregava a morosidade e despontava a magia gráfica em surtos fragmentados originários e espelhados nos blocos sequenciais espelhados em terços na vertical!
+### Os píxeis
 
-Incrustar o grafismo num pixel isolado perfaz as coordenadas exatas num limbo de tramas duma exigência incalculável ao artífice forçado nos limites absolutos do engenho. Para extrair os limites fixos exatos cartesianos das bases num plano dimensional enredado pelas varáveis do tradicional Eixo `X` acoplado vertical e eximiamente num `Y` paralelo vertical, o humilde Assembly perante a ditadura processual converte forçosamente os atributos matemáticos numa moinha cega liquidificando os componentes via fintas sucessivas acoplando varrimentos extenuantes alicerçados sem pausas num festim orgânico misturado nos redutos lógicos encabeçados à mercê de malhas ditadas nas balizas cruzadas nos ditames via operações singulares cruzando de permeio a agilidade duma dança estática encastrada de modo veloz sob conjugaçoões estáticas base do `AND`, pinceladas sob acendimentos focados à luz dum `OR` rodopiando de seguida cegamente enclausuradas pelas catacumbas do engodo nativo assentes em fintas do Rotates assentes no poder rotativo exaustivo num autêntico `RR` até que irrompa com exatidão do seio mecânico das vísceras num autêntico Frankenstein colossal recheado e embalado dum esqueleto refratado por 16 bits exatos e rigorosos duma morada sem retorno.
-O desfecho do cálculo matricial reflete fisicamente um endereçamento inaudito e contíguo:
-No plano do segmento alto o engate subordina o recheio atirado aos blocos constantes encarnando as franjas vitais no cume estipuladas e contínuas atracando a um fragmento de constantes binárias num embate estipulante duma fixação assente impulsionada pelo marco em torno a zeros puros colados sob um um base ditado na morada contígua inicial do berço no extremo a originar do sagrado poço de morada fixa em `0x4000` aliadas e acopladas por varreduras de acertos finos provenientes dos flancos laterais perante decantações absolutas que varreram incansavelmente parcelas fixas arrancando em preceito rigorosos as margens do topo exato de `Y` amalgamando em cauda e coligando os fundos rasos.
-Na parte cimeira encerra o reduto base no remanescente do miolo focado incólume e isolado no meio central de `Y` coligando inequivocamente ao flanco base de todo o teto ditado aos rescaldos de bits originários da variável exata transviada `X`.
+A zona dos píxeis **não** está organizada linha a linha. O ecrã divide-se em três terços de 64 linhas, e dentro de cada terço as linhas estão entrelaçadas: primeiro vêm as primeiras linhas de píxeis das 8 linhas de caracteres, depois as segundas, e assim por diante. Na prática, o endereço do byte que contém o píxel (`x`, `y`), com `y` = 0 no topo, forma-se a partir dos bits das coordenadas assim:
 
-Coroando um calvário letárgico medonho para as pretensões de rendimentos de ponta, a colisão morosa perante a recolha do byte culmina revelando dolorosamente que enclausurados contiguamente se estadeiam em cativeiro não um, mas uns pesados e exatos oito companheiros cravados vizinhos na prisão horizontal do varrimento da grelha. Por via natural desta tragédia a decifração isolada exata não abrange num absoluto linear mas obriga a nova decantação infernal no processo isolando no meio do caos através do crivo imposto sob os vestígios dos limiares dos três derradeiros bits sobrantes decantados em poeira fina na franja final estanque à direita para destrinçar da grelha confinada quem repousa ativamente sob o desígnio cravado pela iluminação vital assinalada em glória duma afirmação singular com poder num ativo `1`. Resulta inclemente e evidente pelo exposto o preço colossal que um simples risco incorre aos quadros e processadores da era perante as cadências inóspitas na lides lentas estritamente restritivas e exaustivas sem precedentes de se pincelar o vazio em moldes e estuques rústicos e brutos pelo esmagamento temporal implacável aos parcos T-States processuais num limitativo bloco espremido por processadores sem auxílios vetoriais a roçar puramente perante exíguos parcos blocos fixos ditados isoladamente a míseros de 8 parcos bits lineares nativos do modesto Z80!
+| Byte alto | Byte baixo |
+| :---: | :---: |
+| `0 1 0 y7 y6 y2 y1 y0` | `y5 y4 y3 x7 x6 x5 x4 x3` |
 
-## A Heresia dos Estuques: A Luta das Cores Face ao Clássico "Color Clash"
+* `y7 y6` escolhem o terço do ecrã;
+* `y5 y4 y3` escolhem a linha de caracteres dentro do terço;
+* `y2 y1 y0` escolhem a linha de píxeis dentro do carácter;
+* `x7 … x3` escolhem a coluna (byte) na linha;
+* `x2 x1 x0` escolhem o bit dentro do byte: 0 é o píxel mais à esquerda (bit 7 do byte).
 
-Em plena conformidade estrita duma máquina a resvalar a genialidade nos meandros na poupança e exíguo aproveitamento frugal na RAM, as valências confinadas exatas ao varrimento pixel a pixel consome na matemática pura as sobras escassas na orla mínima estrita do 1 bit absoluto singular de isolamento unitário em estagnação ditando no fosso ou cimeira a negação cega a rasar cota nula contraponto da negação estrita espraiada afirmativa noutra linha a rasar cota elevada base do solitário ditame "um". Fica relegado incólume as matrizes impiedosas de espectros: onde jaz o pincel que assina de vermelho flamejante ou o azul gélido?
-A arte diviniza estritamente acoplada num recanto inóspito exilado à periferia noutra morada sagrada nas franjas restritas perante os enclausuramentos e enquadramentos dos Atributos acampados intocáveis além das portas contíguas demarcadas aos zeros no logradouro intocável do limiar cravado com rigidez cega sob as ditaduras da fixação sagrada dos números em base assinalada `0x5800`. Venturosamente o rescaldo abençoado assinala um compasso sem amálgamas tortuosas perante as varáveis, ditando um remanso limpo ao programador estupefacto: enquadra sem engodos absolutos um estandarte alinhado matematicamente com lisura nas prateleiras rasas perante o encrave contíguo por uma matriz balizada linear a rasgar trinta e duas franjas cruzadas verticais ao embate exato por vinte e quatros fileiras num desdobramento contíguo esvaziando ao limite contábil dos setecentos e pesados sobejos bytes estáticos cravados sem margens ou erros. O rescaldo da invocação das frentes a pincelar o azulejo reverte à simplificada formula linear ditada universalmente sem margens pela ordem linear simples de matriz sem rasteiras: `(Y * 32) + X`.
+Uma consequência útil: dentro de uma célula de carácter, a linha de píxeis seguinte está sempre 256 bytes à frente, por isso basta `inc h` para descer uma linha.
 
-Mas a tragédia ensombra o caminho glorioso no fado assombrado das lendas. Perante a heresia pragmática a pastilha forçou no desígnio de fundição o poupar esmagador da voragem limitando fisicamente as canetas na proeza negada em pintar o abismo em pontilhismos pixel a pixel. A brutalidade do engenho confina o pincel da televisão pintando aos trambolhões cegos num gigantesco estuque assente unicamente nas fachadas compactadas num monumental e irredutível quadrado (um massivo tile) perfazendo e abrangendo exatos oito sobre oitos num exército contíguo agrupado na cerca intocada de sessenta e quatro elementos exímios perante os redutos! Daqui redunda na implacável condenação estética: perante a cerca inamovível isolada a ditadura assente obriga no sacrifício cego limitando inexoravelmente a duas coradas estritas na sua totalidade! O pingo dita com poder a dita Tinta ditada impoluta por glórias acesas para o estandarte ditado e afirmado nos pólos base cravados em `1` em submissão cruzando aos estiramentos dos palcos vazios sem luz e mortos preenchidos na nulidade cravada em cota redonda na negação assente unicamente em `0` (apelidados da base Papel do fosso ou matriz nula do "Paper"). E perante a submissão aos domínios cruzados das sprites resvala inclemente o drama letal: no sobrepor impensado o avanço colide inexoravelmente roubando cores e desbaratando a vizinhança sem margens onde sangram cores profanas ditando mortes em arrastos caóticos de matizes adulteradas e sujas estragando a ação que a lenda entoou à eternidade na cultura e desfecho batizado e alcunhado impiedosamente na infâmia pelas alcunhas vulgares universais das multidões face aos imperdoáveis massacres na alcunha solene da saga cravada na história como "Color Clash"!
+## Desenhar com Caracteres
 
-Eviscerando sem delongas o estômago de tão caótico e enigmático cesto dita o rescaldo do caixote central focado do já entoado `0x5800` ditando imperiosamente em despojo mecânico as franjas ordenadas da matriz das cores a adornar o afamado e amaldiçoado azulejo impoluto oitos quadros em oitos. O formato na biologia assenta a ditadura e exige estrita obediência perante slots ordenadas com escrupuloso detalhe numa grelha inalterável à estaca sem desculpas num formato esguio:
+A forma mais simples é imprimir caracteres com `rst 16`, como nos capítulos anteriores. Além das letras, o Spectrum tem:
 
-O arrasto obedece e exige na entrada da via esquerda liminarmente o abanão cravado perante a fúria visual cravando perante ecrãs relâmpagos estroboscópicos epilépticos em ciclos de pisca implacável ("Flash"); despenhando num degrau o impacto absoluto vibrante cruzando aos ditames do pulso duma cor recheada de primária estonteante intocada assinalando sem restrições ou decaindo numa pálida franja duma variante mortiça desprovida da alma original acesa sem glória ("Bright"); cruzando finalmente pelas vielas densas em embates com estrita matriz dividindo matematicamente os recheios exatos alocados por três limitadas faixas contíguas em estrita restrição de binários puros resgatados da esquadria perante os preceitos confinados às matizes da tinta (ex: atracando sem apelo à franja nula e humilde do `010` invocando por invocação ancestral colada nos pólos cravados no fogo avermelhado ardente correspondendo no manual da cor impiedosamente associado no índice `2`).
-
-## Compilações Magistrais do Atalho Divino
-
-Caso as odisseias de construção ambicionem no âmago encher as vistas cruzando molduras e obras de matriz imponentes cravadas na íntegra de gigantismo, varrer em labor as prateleiras imensas transigindo na escrita dolorosa na arte arcana as premissas embutidas com caracteres góticos na longa e tortuosa matriz Hexadecimal perante o esforço insano de redigir ponto a ponto em matriz assembly causaria de todo a desidratação exaustiva sem retorno perante o colapso e morte cerebral do escravo e artífice operário das teclas!
-
-A derradeira boia salvadora a transbordar impiedosa perante a lenda exime destas labutas resgatando do poço da alienação mental usando e manuseando ferramentas divinas encastrados em plataformas periféricas supremas munidas perante estações e bastidores modernos cravados nos laboratórios. Perante telas puras exportam em moldes compactados cravados em matriz isoladas as grelhas sem mácula fixadas com indexações limpas nas exatas dezasseis tonalidades clássicas com o recurso majestoso aos compiladores singulares, submetendo impiedosamente a despojos purgados destilando de imediato ficheiros imaculados libertos na rede das amarras da modernidade expurgados da lixeira de origem convertendo os trâmites pesados da imagem em veios diretos com as fundações isoladas em pólos exatos e cravados em liso formato das matrizes cruas nativas.
-A coroa na fúria deste embate encerra num recheio assente colhendo a majestosa e colossal diretiva de invocação e montagem de alicerce supremo abençoado pelos magos compiladores que amassa e martela o binário despudoradamente enraizando as amálgamas perfeitamente compactadas puras cravadas na linha vital exata ao centro da glória intocada do esqueleto operário sob os ditames da divindade "INCBIN":
+* **Gráficos de blocos** (códigos 128 a 143): 16 combinações de quatro quadrados de 4 × 4 píxeis, os desenhos que estão nas teclas 1 a 8.
+* **UDGs** (*User Defined Graphics*, códigos 144 a 164): 21 caracteres que podemos desenhar. A variável de sistema `UDG` (endereço 23675) indica onde estão os seus desenhos, 8 bytes cada. Basta apontá-la para os nossos dados.
 
 ```assembly
-ecra_grafico:
-    incbin "bitmap.bin"     ; Fúria de arremesso e esmagamento duma chapada seca colando perante blocos virgens e intactos a pesada malha exata com seis exaustivos KiloBytes estripados da vida moderna e cravada aos veios arcaicos do código puros em raiz duma plataforma colossal sem desvios!
-
-ecra_cores:
-    incbin "colors.bin"     ; Entrança na amálgama cega perfurando perante rocha matriz enfiando por fim no caldeirão fervente a totalidade pura cravada inquestionável à estaca perante a fúria cega dum pacote desprovido de estornos perfeitamente moldado duma vez dos massivos e intocáveis 768 Bytes coloridos purificados!
-    
-; Perante o banquete e consumado o sacrifício mágico incólume estanque do passado perante a máquina restringe-se por fecho um trâmite vulgar cravado de lufa de transporte abrutalhado perante as pontes e moradas usando invariavelmente perante ecrãs inativos o clássico e estóico LDIR puxando as malhas cravadas fixas estáticas intocadas nos eixos da baliza morta colada nos rótulos encarnados por 'ecra_grafico' e colidindo impiedosa sem pausas ou arrastos emparedando no preceito final absoluto à cabeceira base dita inamovível alojada soberanamente ancorada intemporal em '0x4000'!
+    ld hl,nave          ; os nossos desenhos.
+    ld (23675),hl       ; variável UDG.
+    ld a,144            ; código do primeiro UDG.
+    rst 16
+    ; ...
+nave:
+    defb %00011000      ; 8 bytes = 8 linhas de 8 píxeis.
+    defb %00111100
+    defb %01111110
+    defb %11011011
+    defb %11111111
+    defb %00100100
+    defb %01011010
+    defb %10100101
 ```
+
+## Desenhar Píxeis
+
+Para desenhar um píxel calcula-se o endereço do byte com a tabela de bits acima, e liga-se o bit certo com uma máscara. A rotina seguinte faz isso:
+
+```assembly
+    ; Ligar o píxel (x em C, 0-255; y em B, 0-191, 0 = topo).
+plot:
+    ld a,b
+    and 7               ; y2 y1 y0
+    or 64               ; 0 1 0 0 0 y2 y1 y0
+    ld h,a
+    ld a,b
+    rra
+    rra
+    rra
+    and 24              ; y7 y6 nos bits 4 e 3
+    or h
+    ld h,a              ; H = 0 1 0 y7 y6 y2 y1 y0
+    ld a,b
+    rla
+    rla
+    and 224             ; y5 y4 y3 nos bits 7, 6 e 5
+    ld l,a
+    ld a,c
+    rra
+    rra
+    rra
+    and 31              ; x7 ... x3 nos bits 4 a 0
+    or l
+    ld l,a              ; L = y5 y4 y3 x7 x6 x5 x4 x3
+    ld a,c
+    and 7               ; posição do píxel dentro do byte
+    ld b,a
+    ld a,128            ; máscara para o píxel mais à esquerda.
+    jr z,plot1          ; posição 0: a máscara já está certa.
+plot0:
+    rrca                ; deslocar a máscara para a direita.
+    djnz plot0
+plot1:
+    or (hl)             ; juntar aos píxeis que já lá estão.
+    ld (hl),a
+    ret
+```
+
+Para apagar o píxel em vez de o ligar, inverte-se a máscara (`cpl`) e usa-se `and (hl)`; para o trocar, usa-se `xor (hl)`. A ROM também tem uma rotina de `PLOT`, mas usa coordenadas com `y` = 0 em baixo e é bastante mais lenta.
+
+## Imagens Completas
+
+Para mostrar um ecrã inteiro desenhado num programa de desenho, usa-se um ficheiro `.scr`: os 6912 bytes do ecrã (6144 de píxeis e 768 de atributos), pela ordem em que estão na memória. A diretiva `incbin` do sjasmplus inclui o ficheiro no programa, e um `ldir` copia-o para o ecrã:
+
+```assembly
+    ld hl,imagem        ; origem: a imagem incluída no programa.
+    ld de,16384         ; destino: o ecrã.
+    ld bc,6912          ; píxeis + atributos.
+    ldir
+    ; ...
+imagem:
+    incbin "imagem.scr" ; ficheiro de 6912 bytes.
+```
+
+Para um ecrã de carregamento, nem é preciso incluí-lo no programa: o carregador BASIC pode carregá-lo diretamente com `LOAD ""SCREEN$` (capítulo 18 da Parte 2).
+
+## Um Programa Completo
+
+Este programa desenha uma moldura e uma diagonal com a rotina `plot`, pinta a metade de cima do ecrã de azul, e mostra os 16 gráficos de blocos e um UDG. A moldura só ocupa as primeiras 176 linhas de píxeis (`y` de 0 a 175): as duas últimas linhas de caracteres são a parte do ecrã onde o BASIC escreve as mensagens, e seriam apagadas quando o programa volta ao BASIC e mostra `0 OK`.
+
+```assembly
+        DEVICE ZXSPECTRUM48
+        ORG 32768
+start:
+    call 3503           ; limpar o ecrã e abrir o canal 2.
+
+    ld e,0              ; linhas horizontais: x de 0 a 255.
+horiz:
+    ld c,e              ; topo (y = 0).
+    ld b,0
+    call plot
+    ld c,e              ; fundo (y = 175).
+    ld b,175
+    call plot
+    inc e
+    jr nz,horiz         ; até E dar a volta a 0.
+
+    ld d,0              ; linhas verticais e diagonal: y de 0 a 175.
+vert:
+    ld b,d              ; margem esquerda (x = 0).
+    ld c,0
+    call plot
+    ld b,d              ; margem direita (x = 255).
+    ld c,255
+    call plot
+    ld b,d              ; diagonal (x = y).
+    ld c,d
+    call plot
+    inc d
+    ld a,d
+    cp 176
+    jr nz,vert
+
+    ld hl,22528         ; pintar as primeiras 12 linhas de atributos:
+    ld (hl),1*8+7       ; papel azul, tinta branca.
+    ld de,22529
+    ld bc,12*32-1
+    ldir
+
+    ld a,22             ; AT 20,8.
+    rst 16
+    ld a,20
+    rst 16
+    ld a,8
+    rst 16
+    ld a,128            ; os 16 gráficos de blocos.
+blocos:
+    push af             ; rst 16 não preserva A.
+    rst 16
+    pop af
+    inc a
+    cp 144
+    jr nz,blocos
+
+    ld hl,nave          ; e um UDG.
+    ld (23675),hl
+    ld a,' '
+    rst 16
+    ld a,144
+    rst 16
+    ret
+
+    ; Ligar o píxel (x em C, 0-255; y em B, 0-191, 0 = topo).
+plot:
+    ld a,b
+    and 7
+    or 64
+    ld h,a
+    ld a,b
+    rra
+    rra
+    rra
+    and 24
+    or h
+    ld h,a
+    ld a,b
+    rla
+    rla
+    and 224
+    ld l,a
+    ld a,c
+    rra
+    rra
+    rra
+    and 31
+    or l
+    ld l,a
+    ld a,c
+    and 7
+    ld b,a
+    ld a,128
+    jr z,plot1
+plot0:
+    rrca
+    djnz plot0
+plot1:
+    or (hl)
+    ld (hl),a
+    ret
+
+nave:
+    defb %00011000
+    defb %00111100
+    defb %01111110
+    defb %11011011
+    defb %11111111
+    defb %00100100
+    defb %01011010
+    defb %10100101
+fim:
+
+; --- Carregador BASIC + ficheiro .tap (igual em todos os exemplos) ---
+        ORG 23755
+basic:  db 0,10                 ; 10 CLEAR 32767: LOAD "" CODE: RANDOMIZE USR 32768
+        dw basic_fim-basic-4
+        db $FD,$B0,'"32767":',$EF,'""',$AF,':',$F9,$C0,$B0,'"32768"',13
+basic_fim:
+        EMPTYTAP "z80_10_1.tap"
+        SAVETAP  "z80_10_1.tap",BASIC,"z80_10_1",basic,basic_fim-basic,10
+        SAVETAP  "z80_10_1.tap",CODE,"z80_10_1",start,fim-start
+```
+
+Repare no `push af` / `pop af` à volta do `rst 16` no ciclo dos blocos: a rotina de impressão da ROM altera `A` (e as flags), por isso o contador tem de ser guardado na pilha antes de cada impressão.
+
+## Exercícios
+
+1. Escreva uma rotina `unplot` que apague um píxel, e use-a para apagar a diagonal.
+2. Desenhe um retângulo cheio de 32 × 16 píxeis no centro do ecrã.
+3. Pinte cada uma das 24 linhas de atributos com uma cor de papel diferente (use `and 7` sobre o número da linha).
